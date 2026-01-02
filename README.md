@@ -11,7 +11,6 @@ nest g resource demands
 nest g service users
 nest g controller users
 
-# Choisis npm comme package manager
 # Entre dans le dossier
 cd hgpd-backend
 
@@ -51,7 +50,20 @@ mkdir src/config
 mkdir src/database
 mkdir src/database/migrations
 mkdir src/database/seeds
+
+# meet avec HGP 
+
+# github 
+gh auth logout
+gh auth login
+
+Suivez les étapes :
+  1. Choisissez GitHub.com
+  2. Choisissez HTTPS
+  3. Choisissez Login with a web browser
+  4. Copiez le code affiché et authentifiez-vous avec votre compte sidydiopbalde12
 ```
+
 
 ### **Structure finale attendue :**
 ```
@@ -65,7 +77,7 @@ hgpd-backend/
 │   │   ├── dto/
 │   │   │   ├── login.dto.ts
 │   │   │   └── register.dto.ts
-│   │   ├── auth.controller.ts
+│   │   ├── auth.controller.tsnewsdb191
 │   │   ├── auth.service.ts
 │   │   └── auth.module.ts
 │   │
