@@ -17,5 +17,8 @@ export default registerAs(
     migrationsRun: false, 
     autoLoadEntities: true,
     logging: true, 
+
+    //   // Charger toutes les entités
+    // entities: [__dirname + '/../**/*.entity{.ts,.js}'],
   }),
 );

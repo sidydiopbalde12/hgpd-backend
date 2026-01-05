@@ -18,6 +18,13 @@ import { PaymentsModule } from './payments/payments.module';
 import { NotificationsModule } from './notifications/notifications.module';
 
 import { validate } from './config/env.validation';
+import { OrganizersModule } from './organizers/organizers.module';
+import { CategoriesModule } from './categories/categories.module';
+import { DemandsModule } from './demands/demands.module';
+import { ReviewsModule } from './reviews/reviews.module';
+import { SupportModule } from './support/support.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { SponsorshipsModule } from './sponsorships/sponsorships.module';
 
 @Module({
   imports: [
@@ -57,6 +64,13 @@ import { validate } from './config/env.validation';
     EventsModule,
     PaymentsModule,
     NotificationsModule,
+    OrganizersModule,
+    CategoriesModule,
+    DemandsModule,
+    ReviewsModule,
+    SupportModule,
+    SubscriptionsModule,
+    SponsorshipsModule,
   ],
 })
 export class AppModule {}

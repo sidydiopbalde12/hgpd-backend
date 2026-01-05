@@ -1,0 +1,200 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Demand } from './entities/demand.entity';
+import { DemandProvider } from './entities/demand-provider.entity';
+import { DemandStatus } from '../common/enums';
+import {
+  CreateDemandDto,
+  UpdateDemandDto,
+  AssignProviderDto,
+  UpdateDemandProviderDto,
+} from './dto';
+
+@Injectable()
+export class DemandsService {
+  constructor(
+    @InjectRepository(Demand)
+    private readonly demandRepository: Repository<Demand>,
+    @InjectRepository(DemandProvider)
+    private readonly demandProviderRepository: Repository<DemandProvider>,
+  ) {}
+
+  // Demands CRUD
+  async create(dto: CreateDemandDto): Promise<Demand> {
+    const demand = this.demandRepository.create(dto);
+    return this.demandRepository.save(demand);
+  }
+
+  async findAll(options?: {
+    organizerId?: string;
+    status?: DemandStatus;
+    fromDate?: Date;
+    toDate?: Date;
+  }): Promise<Demand[]> {
+    const query = this.demandRepository
+      .createQueryBuilder('demand')
+      .leftJoinAndSelect('demand.organizer', 'organizer')
+      .leftJoinAndSelect('demand.demandProviders', 'dp')
+      .leftJoinAndSelect('dp.provider', 'provider');
+
+    if (options?.organizerId) {
+      query.andWhere('demand.organizerId = :organizerId', {
+        organizerId: options.organizerId,
+      });
+    }
+
+    if (options?.status) {
+      query.andWhere('demand.status = :status', { status: options.status });
+    }
+
+    if (options?.fromDate) {
+      query.andWhere('demand.eventDate >= :fromDate', {
+        fromDate: options.fromDate,
+      });
+    }
+
+    if (options?.toDate) {
+      query.andWhere('demand.eventDate <= :toDate', { toDate: options.toDate });
+    }
+
+    return query.orderBy('demand.createdAt', 'DESC').getMany();
+  }
+
+  async findById(id: string): Promise<Demand> {
+    const demand = await this.demandRepository.findOne({
+      where: { id },
+      relations: [
+        'organizer',
+        'demandProviders',
+        'demandProviders.provider',
+        'demandProviders.payment',
+      ],
+    });
+    if (!demand) {
+      throw new NotFoundException(`Demand with ID ${id} not found`);
+    }
+    return demand;
+  }
+
+  async update(id: string, dto: UpdateDemandDto): Promise<Demand> {
+    const demand = await this.findById(id);
+    Object.assign(demand, dto);
+    return this.demandRepository.save(demand);
+  }
+
+  async updateStatus(id: string, status: DemandStatus): Promise<Demand> {
+    const demand = await this.findById(id);
+    demand.status = status;
+    return this.demandRepository.save(demand);
+  }
+
+  async remove(id: string): Promise<void> {
+    const demand = await this.findById(id);
+    await this.demandRepository.remove(demand);
+  }
+
+  // DemandProvider operations
+  async assignProvider(
+    demandId: string,
+    dto: AssignProviderDto,
+  ): Promise<DemandProvider> {
+    await this.findById(demandId);
+
+    const existing = await this.demandProviderRepository.findOne({
+      where: { demandId, providerId: dto.providerId },
+    });
+    if (existing) {
+      return existing;
+    }
+
+    const dp = this.demandProviderRepository.create({
+      demandId,
+      providerId: dto.providerId,
+    });
+    return this.demandProviderRepository.save(dp);
+  }
+
+  async findDemandsByProvider(
+    providerId: string,
+    status?: DemandStatus,
+  ): Promise<DemandProvider[]> {
+    const query = this.demandProviderRepository
+      .createQueryBuilder('dp')
+      .leftJoinAndSelect('dp.demand', 'demand')
+      .leftJoinAndSelect('demand.organizer', 'organizer')
+      .where('dp.providerId = :providerId', { providerId });
+
+    if (status) {
+      query.andWhere('dp.status = :status', { status });
+    }
+
+    return query.orderBy('demand.createdAt', 'DESC').getMany();
+  }
+
+  async getDemandProvider(
+    demandId: string,
+    providerId: string,
+  ): Promise<DemandProvider> {
+    const dp = await this.demandProviderRepository.findOne({
+      where: { demandId, providerId },
+      relations: ['demand', 'provider', 'payment', 'review'],
+    });
+    if (!dp) {
+      throw new NotFoundException(`DemandProvider not found`);
+    }
+    return dp;
+  }
+
+  async getDemandProviderById(id: string): Promise<DemandProvider> {
+    const dp = await this.demandProviderRepository.findOne({
+      where: { id },
+      relations: ['demand', 'demand.organizer', 'provider', 'payment', 'review'],
+    });
+    if (!dp) {
+      throw new NotFoundException(`DemandProvider with ID ${id} not found`);
+    }
+    return dp;
+  }
+
+  async updateDemandProvider(
+    id: string,
+    dto: UpdateDemandProviderDto,
+  ): Promise<DemandProvider> {
+    const dp = await this.getDemandProviderById(id);
+    Object.assign(dp, dto);
+    return this.demandProviderRepository.save(dp);
+  }
+
+  async unlockContact(demandProviderId: string): Promise<DemandProvider> {
+    const dp = await this.getDemandProviderById(demandProviderId);
+    dp.contactUnlockedAt = new Date();
+    return this.demandProviderRepository.save(dp);
+  }
+
+  async removeProvider(demandId: string, providerId: string): Promise<void> {
+    const dp = await this.getDemandProvider(demandId, providerId);
+    await this.demandProviderRepository.remove(dp);
+  }
+
+  // Stats
+  async getProviderStats(providerId: string): Promise<{
+    total: number;
+    completed: number;
+    pending: number;
+  }> {
+    const total = await this.demandProviderRepository.count({
+      where: { providerId },
+    });
+
+    const completed = await this.demandProviderRepository.count({
+      where: { providerId, convertedToMission: true },
+    });
+
+    const pending = await this.demandProviderRepository.count({
+      where: { providerId, status: DemandStatus.NEW_REQUEST },
+    });
+
+    return { total, completed, pending };
+  }
+}
