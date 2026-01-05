@@ -51,6 +51,17 @@ mkdir src/database
 mkdir src/database/migrations
 mkdir src/database/seeds
 
+# commandes pour seed
+
+  # Remplir la base (ignore si déjà remplie)
+  npm run seed
+
+  # Vider puis remplir la base
+  npm run seed:fresh
+
+  # Vider la base uniquement
+  npm run seed:clear
+  
 # meet avec HGP 
 
 # github 

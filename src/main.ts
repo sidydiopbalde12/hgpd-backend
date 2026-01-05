@@ -1,9 +1,10 @@
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-
+import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptor';
+import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters/http-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -19,7 +20,10 @@ async function bootstrap() {
     origin: corsOrigin.split(','),
     credentials: true,
   });
-
+  app.useGlobalFilters(
+    new AllExceptionsFilter(),
+    new HttpExceptionFilter(),
+  );
   // Validation globale
   app.useGlobalPipes(
     new ValidationPipe({
@@ -31,6 +35,9 @@ async function bootstrap() {
       },
     }),
   );
+  // 🎯 INTERCEPTOR GLOBAL - Format de réponse standardisé
+  const reflector = app.get(Reflector);
+  app.useGlobalInterceptors(new TransformResponseInterceptor(reflector));
 
   // Swagger Documentation
   const config = new DocumentBuilder()

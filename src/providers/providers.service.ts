@@ -57,11 +57,17 @@ export class ProvidersService {
     return savedProvider;
   }
 
-  async findAll(options?: {
+   async findAll(options?: {
     department?: string;
     categoryId?: number;
     isActive?: boolean;
-  }): Promise<Provider[]> {
+    page?: number;
+    limit?: number;
+  }) {
+    const page = options?.page || 1;
+    const limit = options?.limit || 20;
+    const skip = (page - 1) * limit;
+
     const query = this.providerRepository
       .createQueryBuilder('provider')
       .leftJoinAndSelect('provider.photos', 'photos')
@@ -87,7 +93,20 @@ export class ProvidersService {
       });
     }
 
-    return query.orderBy('provider.createdAt', 'DESC').getMany();
+    const [items, total] = await query
+      .orderBy('provider.createdAt', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getManyAndCount();
+
+    // Retourner les données brutes, l'interceptor s'occupe du format
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findById(id: string): Promise<Provider> {

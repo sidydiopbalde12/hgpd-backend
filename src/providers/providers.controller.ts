@@ -10,8 +10,11 @@ import {
   Query,
   ParseIntPipe,
   ParseBoolPipe,
+  HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
 import { ProvidersService } from './providers.service';
+import { ResponseMessage } from '../common/decorators/api-response.decorator';
 import {
   CreateProviderDto,
   UpdateProviderDto,
@@ -19,30 +22,47 @@ import {
   CreateProviderVideoDto,
   AddProviderCategoryDto,
 } from './dto';
+import { ApiOperation, ApiQuery } from '@nestjs/swagger';
 
 @Controller('providers')
 export class ProvidersController {
   constructor(private readonly providersService: ProvidersService) {}
 
   @Post()
+  @ApiOperation({ summary: 'Créer un prestataire' })
+  @HttpCode(HttpStatus.CREATED)
+  @ResponseMessage('Prestataire créé avec succès')
   create(@Body() dto: CreateProviderDto) {
     return this.providersService.create(dto);
   }
 
   @Get()
-  findAll(
+  @ApiOperation({ summary: 'Liste paginée des prestataires' })
+  @ApiQuery({ name: 'department', required: false, example: 'Dakar' })
+  @ApiQuery({ name: 'categoryId', required: false, type: Number, example: 3 })
+  @ApiQuery({ name: 'isActive', required: false, type: Boolean })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ResponseMessage('Liste des prestataires récupérée avec succès')
+  async findAll(
     @Query('department') department?: string,
     @Query('categoryId') categoryId?: string,
     @Query('isActive') isActive?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.providersService.findAll({
+    return await this.providersService.findAll({
       department,
       categoryId: categoryId ? parseInt(categoryId, 10) : undefined,
-      isActive: isActive ? isActive === 'true' : undefined,
+      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20,
     });
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Détails d\'un prestataire' })
+  @ResponseMessage('Prestataire récupéré avec succès')
   findById(@Param('id', ParseUUIDPipe) id: string) {
     return this.providersService.findById(id);
   }
@@ -58,6 +78,8 @@ export class ProvidersController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Modifier un prestataire' })
+  @ResponseMessage('Prestataire modifié avec succès')
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateProviderDto,
@@ -74,6 +96,9 @@ export class ProvidersController {
   }
 
   @Delete(':id')
+   @ApiOperation({ summary: 'Supprimer un prestataire' })
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ResponseMessage('Prestataire supprimé avec succès')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.providersService.remove(id);
   }
