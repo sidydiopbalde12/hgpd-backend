@@ -8,6 +8,7 @@ import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
 import waveConfig from './config/wave.config';
 import whatsappConfig from './config/whatsapp.config';
+import emailConfig from './config/email.config';
 
 // Import des modules métier
 import { AuthModule } from './auth/auth.module';
@@ -32,7 +33,7 @@ import { SponsorshipsModule } from './sponsorships/sponsorships.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
-      load: [databaseConfig, jwtConfig, waveConfig, whatsappConfig],
+      load: [databaseConfig, jwtConfig, waveConfig, whatsappConfig, emailConfig],
       validate
     }),
 

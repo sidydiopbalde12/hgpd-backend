@@ -7,6 +7,9 @@ import {
   IsInt,
   MaxLength,
   Min,
+  IsArray,
+  IsUUID,
+  ArrayMinSize,
 } from 'class-validator';
 
 export class CreateDemandDto {
@@ -56,4 +59,15 @@ export class CreateDemandDto {
   @IsOptional()
   @IsString()
   additionalInfo?: string;
+
+  @ApiProperty({
+    example: ['uuid-provider-1', 'uuid-provider-2'],
+    description: 'Liste des IDs des prestataires à notifier',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @ArrayMinSize(1)
+  providerIds?: string[];
 }

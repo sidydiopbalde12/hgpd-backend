@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Demand } from './entities/demand.entity';
 import { DemandProvider } from './entities/demand-provider.entity';
+import { Provider } from '../providers/entities/provider.entity';
 import { DemandStatus } from '../common/enums';
 import {
   CreateDemandDto,
@@ -10,20 +11,75 @@ import {
   AssignProviderDto,
   UpdateDemandProviderDto,
 } from './dto';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class DemandsService {
+  private readonly logger = new Logger(DemandsService.name);
+
   constructor(
     @InjectRepository(Demand)
     private readonly demandRepository: Repository<Demand>,
     @InjectRepository(DemandProvider)
     private readonly demandProviderRepository: Repository<DemandProvider>,
+    @InjectRepository(Provider)
+    private readonly providerRepository: Repository<Provider>,
+    private readonly mailService: MailService,
   ) {}
 
   // Demands CRUD
   async create(dto: CreateDemandDto): Promise<Demand> {
-    const demand = this.demandRepository.create(dto);
-    return this.demandRepository.save(demand);
+    const { providerIds, ...demandData } = dto;
+
+    // Create and save the demand
+    const demand = this.demandRepository.create(demandData);
+    const savedDemand = await this.demandRepository.save(demand);
+
+    // If providerIds are provided, assign providers and send notifications
+    if (providerIds && providerIds.length > 0) {
+      await this.assignMultipleProvidersAndNotify(savedDemand, providerIds);
+    }
+
+    // Return demand with relations
+    return this.findById(savedDemand.id);
+  }
+
+  private async assignMultipleProvidersAndNotify(
+    demand: Demand,
+    providerIds: string[],
+  ): Promise<void> {
+    // Fetch all providers
+    const providers = await this.providerRepository.find({
+      where: { id: In(providerIds) },
+    });
+
+    if (providers.length === 0) {
+      this.logger.warn(`No valid providers found for IDs: ${providerIds.join(', ')}`);
+      return;
+    }
+
+    // Create DemandProvider entries for each provider
+    const demandProviders = providers.map((provider) =>
+      this.demandProviderRepository.create({
+        demandId: demand.id,
+        providerId: provider.id,
+      }),
+    );
+    await this.demandProviderRepository.save(demandProviders);
+
+    this.logger.log(
+      `Assigned ${providers.length} providers to demand ${demand.id}`,
+    );
+
+    // Send email notifications to all providers
+    const emailResults = await this.mailService.sendDemandNotificationToMultipleProviders(
+      providers,
+      demand,
+    );
+
+    this.logger.log(
+      `Email notifications sent - Success: ${emailResults.success.length}, Failed: ${emailResults.failed.length}`,
+    );
   }
 
   async findAll(options?: {
