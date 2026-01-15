@@ -31,16 +31,16 @@ export class DemandsService {
   async create(dto: CreateDemandDto): Promise<Demand> {
     const { providerIds, ...demandData } = dto;
 
-    // Create and save the demand
+    
     const demand = this.demandRepository.create(demandData);
     const savedDemand = await this.demandRepository.save(demand);
 
-    // If providerIds are provided, assign providers and send notifications
+  
     if (providerIds && providerIds.length > 0) {
       await this.assignMultipleProvidersAndNotify(savedDemand, providerIds);
     }
 
-    // Return demand with relations
+   
     return this.findById(savedDemand.id);
   }
 
@@ -48,7 +48,7 @@ export class DemandsService {
     demand: Demand,
     providerIds: string[],
   ): Promise<void> {
-    // Fetch all providers
+   
     const providers = await this.providerRepository.find({
       where: { id: In(providerIds) },
     });
