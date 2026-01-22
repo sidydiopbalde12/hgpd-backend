@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verification de votre email</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 20px;
+      margin-bottom: 25px;
+    }
+    .header h1 {
+      color: #007bff;
+      margin: 0;
+      font-size: 24px;
+    }
+    .content p {
+      margin: 15px 0;
+    }
+    .cta {
+      text-align: center;
+      margin: 30px 0;
+    }
+    .cta-button {
+      display: inline-block;
+      background-color: #28a745;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 14px 40px;
+      border-radius: 5px;
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .link-text {
+      word-break: break-all;
+      color: #007bff;
+      font-size: 14px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #dee2e6;
+      color: #6c757d;
+      font-size: 12px;
+    }
+    .warning {
+      background-color: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 4px;
+      padding: 15px;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>HGPD - Verification Email</h1>
+    </div>
+
+    <div class="content">
+      <p>Bonjour <strong>{{firstName}} {{lastName}}</strong>,</p>
+
+      <p>Merci de vous etre inscrit sur HGPD ! Pour finaliser votre inscription et activer votre compte, veuillez verifier votre adresse email en cliquant sur le bouton ci-dessous.</p>
+
+      <div class="cta">
+        <a href="{{verificationUrl}}" class="cta-button">Verifier mon email</a>
+      </div>
+
+      <p>Ou copiez ce lien dans votre navigateur :</p>
+      <p class="link-text">{{verificationUrl}}</p>
+
+      <div class="warning">
+        <strong>Important :</strong> Ce lien expire dans 24 heures. Si vous n'avez pas demande cette verification, ignorez cet email.
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>Cet email a ete envoye automatiquement par HGPD.</p>
+      <p>&copy; {{year}} HGPD - Tous droits reserves</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -21,3 +21,7 @@ export * from './sponsorship-status.enum';
 export * from './notification-type.enum';
 export * from './notification-channel.enum';
 export * from './notification-status.enum';
+
+// Auth & Roles
+export * from './admin-role.enum';
+export * from './user-type.enum';

@@ -1,13 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
 import { Demand } from '../demands/entities/demand.entity';
 import { Provider } from '../providers/entities/provider.entity';
+import { Organizer } from '../organizers/entities/organizer.entity';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
+  private readonly adminEmail: string;
+  private readonly platformUrl: string;
 
-  constructor(private readonly mailerService: MailerService) {}
+  constructor(
+    private readonly mailerService: MailerService,
+    private readonly configService: ConfigService,
+  ) {
+    this.adminEmail = this.configService.get<string>('email.adminEmail') || 'admin@hgpd.com';
+    this.platformUrl = this.configService.get<string>('email.platformUrl') || 'https://hgpd.com';
+  }
 
   async sendDemandNotification(
     provider: Provider,
@@ -36,6 +46,7 @@ export class MailService {
           geographicZone: demand.geographicZone || 'Non spécifié',
           budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non spécifié',
           additionalInfo: demand.additionalInfo || 'Aucune information supplémentaire',
+          platformUrl: this.platformUrl,
           year: new Date().getFullYear(),
         },
       });
@@ -72,6 +83,125 @@ export class MailService {
 
     return results;
   }
+
+  async sendDemandNotificationToAdmin(
+    demand: Demand,
+    organizer: Organizer,
+    providers: Provider[],
+  ): Promise<void> {
+    try {
+      const providersData = providers.map((provider) => ({
+        companyName: provider.companyName || 'Non spécifié',
+        fullName: `${provider.firstName} ${provider.lastName}`,
+        email: provider.email || 'Non spécifié',
+        phone: provider.phone || 'Non spécifié',
+        category: provider.activity || 'Non spécifié',
+      }));
+
+      await this.mailerService.sendMail({
+        to: this.adminEmail,
+        subject: `[Admin] Nouvelle demande - ${demand.eventNature} - ${organizer.firstName} ${organizer.lastName}`,
+        template: 'admin-new-demand',
+        context: {
+          // Infos organisateur
+          organizerName: `${organizer.firstName} ${organizer.lastName}`,
+          organizerPhone: organizer.phone || 'Non spécifié',
+          organizerEmail: organizer.email || 'Non spécifié',
+          organizerCommune: organizer.commune || 'Non spécifié',
+          organizerDepartment: organizer.department || 'Non spécifié',
+          // Infos événement
+          contactName: demand.contactName,
+          eventNature: demand.eventNature,
+          eventDate: this.formatDate(new Date(demand.eventDate)),
+          approximateGuests: demand.approximateGuests || 'Non spécifié',
+          location: demand.location || 'Non spécifié',
+          geographicZone: demand.geographicZone || 'Non spécifié',
+          budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non spécifié',
+          additionalInfo: demand.additionalInfo || 'Aucune information supplémentaire',
+          // Prestataires
+          providers: providersData,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      this.logger.log(
+        `Admin notification sent for demand ${demand.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send admin notification for demand ${demand.id}: ${error.message}`,
+      );
+      // Ne pas faire échouer la création de la demande si l'email admin échoue
+    }
+  }
+
+  // ==================== AUTH EMAILS ====================
+
+  async sendEmailVerification(provider: Provider, token: string): Promise<void> {
+    if (!provider.email) {
+      this.logger.warn(
+        `Provider ${provider.id} has no email address, skipping verification email`,
+      );
+      return;
+    }
+
+    const verificationUrl = `${this.platformUrl}/verify-email?token=${token}`;
+
+    try {
+      await this.mailerService.sendMail({
+        to: provider.email,
+        subject: 'Verification de votre adresse email - HGPD',
+        template: 'email-verification',
+        context: {
+          firstName: provider.firstName,
+          lastName: provider.lastName,
+          verificationUrl,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      this.logger.log(`Email verification sent to ${provider.email}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send email verification to ${provider.email}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  async sendPasswordResetEmail(provider: Provider, token: string): Promise<void> {
+    if (!provider.email) {
+      this.logger.warn(
+        `Provider ${provider.id} has no email address, skipping password reset email`,
+      );
+      return;
+    }
+
+    const resetUrl = `${this.platformUrl}/reset-password?token=${token}`;
+
+    try {
+      await this.mailerService.sendMail({
+        to: provider.email,
+        subject: 'Reinitialisation de votre mot de passe - HGPD',
+        template: 'password-reset',
+        context: {
+          firstName: provider.firstName,
+          lastName: provider.lastName,
+          resetUrl,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      this.logger.log(`Password reset email sent to ${provider.email}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to send password reset email to ${provider.email}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  // ==================== HELPERS ====================
 
   private formatDate(date: Date): string {
     return date.toLocaleDateString('fr-FR', {

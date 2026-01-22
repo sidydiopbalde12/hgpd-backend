@@ -4,6 +4,7 @@ import { Repository, In } from 'typeorm';
 import { Demand } from './entities/demand.entity';
 import { DemandProvider } from './entities/demand-provider.entity';
 import { Provider } from '../providers/entities/provider.entity';
+import { Organizer } from '../organizers/entities/organizer.entity';
 import { DemandStatus } from '../common/enums';
 import {
   CreateDemandDto,
@@ -24,6 +25,8 @@ export class DemandsService {
     private readonly demandProviderRepository: Repository<DemandProvider>,
     @InjectRepository(Provider)
     private readonly providerRepository: Repository<Provider>,
+    @InjectRepository(Organizer)
+    private readonly organizerRepository: Repository<Organizer>,
     private readonly mailService: MailService,
   ) {}
 
@@ -31,30 +34,41 @@ export class DemandsService {
   async create(dto: CreateDemandDto): Promise<Demand> {
     const { providerIds, ...demandData } = dto;
 
-    
     const demand = this.demandRepository.create(demandData);
     const savedDemand = await this.demandRepository.save(demand);
 
-  
+    // Récupérer l'organisateur pour les notifications
+    const organizer = await this.organizerRepository.findOne({
+      where: { id: savedDemand.organizerId },
+    });
+
     if (providerIds && providerIds.length > 0) {
-      await this.assignMultipleProvidersAndNotify(savedDemand, providerIds);
+      await this.assignMultipleProvidersAndNotify(savedDemand, providerIds, organizer);
+    } else {
+      // Envoyer l'email admin même si aucun prestataire n'est assigné
+      if (organizer) {
+        await this.mailService.sendDemandNotificationToAdmin(savedDemand, organizer, []);
+      }
     }
 
-   
     return this.findById(savedDemand.id);
   }
 
   private async assignMultipleProvidersAndNotify(
     demand: Demand,
     providerIds: string[],
+    organizer: Organizer | null,
   ): Promise<void> {
-   
     const providers = await this.providerRepository.find({
       where: { id: In(providerIds) },
     });
 
     if (providers.length === 0) {
       this.logger.warn(`No valid providers found for IDs: ${providerIds.join(', ')}`);
+      // Envoyer l'email admin même sans prestataires
+      if (organizer) {
+        await this.mailService.sendDemandNotificationToAdmin(demand, organizer, []);
+      }
       return;
     }
 
@@ -80,6 +94,11 @@ export class DemandsService {
     this.logger.log(
       `Email notifications sent - Success: ${emailResults.success.length}, Failed: ${emailResults.failed.length}`,
     );
+
+    // Send admin notification with all details
+    if (organizer) {
+      await this.mailService.sendDemandNotificationToAdmin(demand, organizer, providers);
+    }
   }
 
   async findAll(options?: {

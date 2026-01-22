@@ -114,7 +114,7 @@ export function generateProviders(count: number = 50): ProviderSeedData[] {
   const providers: ProviderSeedData[] = [];
   const usedPhones = new Set<string>();
   const usedEmails = new Set<string>();
-
+  
   const categoryKeys = Object.keys(activitiesByCategory);
 
   for (let i = 0; i < count; i++) {
