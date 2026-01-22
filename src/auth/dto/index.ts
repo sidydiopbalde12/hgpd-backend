@@ -1,6 +1,7 @@
 export * from './provider-register.dto';
 export * from './provider-login.dto';
 export * from './admin-login.dto';
+export * from './create-admin.dto';
 export * from './refresh-token.dto';
 export * from './tokens-response.dto';
 export * from './forgot-password.dto';

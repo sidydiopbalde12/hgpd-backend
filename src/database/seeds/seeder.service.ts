@@ -10,12 +10,14 @@ import { Provider } from '../../providers/entities/provider.entity';
 import { ProviderCategory } from '../../providers/entities/provider-category.entity';
 import { ProviderStats } from '../../providers/entities/provider-stats.entity';
 import { Organizer } from '../../organizers/entities/organizer.entity';
+import { Admin } from '../../auth/entities/admin.entity';
 
 // Data
 import { categoriesData } from './data/categories.data';
 import { usersData } from './data/users.data';
 import { generateProviders } from './data/providers.data';
 import { generateOrganizers } from './data/organizers.data';
+import { generateAdmins } from './data/admins.data';
 
 @Injectable()
 export class SeederService {
@@ -37,12 +39,15 @@ export class SeederService {
     private readonly providerStatsRepository: Repository<ProviderStats>,
     @InjectRepository(Organizer)
     private readonly organizerRepository: Repository<Organizer>,
+    @InjectRepository(Admin)
+    private readonly adminRepository: Repository<Admin>,
   ) {}
 
   async seed(): Promise<void> {
     this.logger.log('Starting database seeding...');
 
     try {
+      await this.seedAdmins();
       await this.seedUsers();
       await this.seedCategories();
       await this.seedProviders();
@@ -67,6 +72,10 @@ export class SeederService {
 
       // Ordre de suppression pour respecter les dépendances
       const tables = [
+        'refresh_tokens',
+        'password_reset_tokens',
+        'email_verification_tokens',
+        'phone_otps',
         'notifications',
         'sponsorships',
         'subscriptions',
@@ -84,6 +93,7 @@ export class SeederService {
         'sub_categories',
         'categories',
         'users',
+        'admins',
       ];
 
       for (const table of tables) {
@@ -221,5 +231,24 @@ export class SeederService {
     }
 
     this.logger.log(`Seeded ${organizersData.length} organizers`);
+  }
+
+  private async seedAdmins(): Promise<void> {
+    this.logger.log('Seeding admins...');
+
+    const existingCount = await this.adminRepository.count();
+    if (existingCount > 0) {
+      this.logger.log(`Admins already seeded (${existingCount} found). Skipping...`);
+      return;
+    }
+
+    const adminsData = generateAdmins();
+
+    for (const adminData of adminsData) {
+      const admin = this.adminRepository.create(adminData);
+      await this.adminRepository.save(admin);
+    }
+
+    this.logger.log(`Seeded ${adminsData.length} admins`);
   }
 }
