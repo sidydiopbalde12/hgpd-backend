@@ -13,6 +13,7 @@ import {
   UpdateDemandProviderDto,
 } from './dto';
 import { MailService } from '../mail/mail.service';
+import { WhatsAppService } from '../whatsapp/whatsapp.service';
 
 @Injectable()
 export class DemandsService {
@@ -28,6 +29,7 @@ export class DemandsService {
     @InjectRepository(Organizer)
     private readonly organizerRepository: Repository<Organizer>,
     private readonly mailService: MailService,
+    private readonly whatsAppService: WhatsAppService,
   ) {}
 
   // Demands CRUD
@@ -45,9 +47,10 @@ export class DemandsService {
     if (providerIds && providerIds.length > 0) {
       await this.assignMultipleProvidersAndNotify(savedDemand, providerIds, organizer);
     } else {
-      // Envoyer l'email admin même si aucun prestataire n'est assigné
+      // Envoyer les notifications admin meme si aucun prestataire n'est assigne
       if (organizer) {
         await this.mailService.sendDemandNotificationToAdmin(savedDemand, organizer, []);
+        await this.whatsAppService.sendDemandNotificationToAdmin(savedDemand, organizer, []);
       }
     }
 
@@ -65,9 +68,10 @@ export class DemandsService {
 
     if (providers.length === 0) {
       this.logger.warn(`No valid providers found for IDs: ${providerIds.join(', ')}`);
-      // Envoyer l'email admin même sans prestataires
+      // Envoyer les notifications admin meme sans prestataires
       if (organizer) {
         await this.mailService.sendDemandNotificationToAdmin(demand, organizer, []);
+        await this.whatsAppService.sendDemandNotificationToAdmin(demand, organizer, []);
       }
       return;
     }
@@ -95,9 +99,20 @@ export class DemandsService {
       `Email notifications sent - Success: ${emailResults.success.length}, Failed: ${emailResults.failed.length}`,
     );
 
-    // Send admin notification with all details
+    // Send WhatsApp notifications to all providers
+    const whatsAppResults = await this.whatsAppService.sendDemandNotificationToMultipleProviders(
+      providers,
+      demand,
+    );
+
+    this.logger.log(
+      `WhatsApp notifications sent - Success: ${whatsAppResults.success.length}, Failed: ${whatsAppResults.failed.length}`,
+    );
+
+    // Send admin notifications (email + WhatsApp) with all details
     if (organizer) {
       await this.mailService.sendDemandNotificationToAdmin(demand, organizer, providers);
+      await this.whatsAppService.sendDemandNotificationToAdmin(demand, organizer, providers);
     }
   }
 

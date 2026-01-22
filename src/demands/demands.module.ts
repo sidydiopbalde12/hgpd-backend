@@ -7,11 +7,13 @@ import { DemandProvider } from './entities/demand-provider.entity';
 import { Provider } from '../providers/entities/provider.entity';
 import { Organizer } from '../organizers/entities/organizer.entity';
 import { MailModule } from '../mail/mail.module';
+import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Demand, DemandProvider, Provider, Organizer]),
     MailModule,
+    WhatsAppModule,
   ],
   providers: [DemandsService],
   controllers: [DemandsController],
