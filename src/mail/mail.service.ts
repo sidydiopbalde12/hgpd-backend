@@ -135,6 +135,60 @@ export class MailService {
     }
   }
 
+  // ==================== MISSION CONFIRMED EMAIL ====================
+
+  async sendMissionConfirmedEmail(
+    provider: Provider,
+    demand: Demand,
+    organizer: Organizer,
+  ): Promise<void> {
+    if (!provider.email) {
+      this.logger.warn(
+        `Provider ${provider.id} has no email address, skipping mission confirmed email`,
+      );
+      return;
+    }
+
+    try {
+      await this.mailerService.sendMail({
+        to: provider.email,
+        subject: `Mission confirmee - ${demand.eventNature} - HGPD`,
+        template: 'mission-confirmed',
+        context: {
+          // Infos prestataire
+          providerName: `${provider.firstName} ${provider.lastName}`,
+          companyName: provider.companyName,
+          // Infos organisateur
+          organizerName: `${organizer.firstName} ${organizer.lastName}`,
+          organizerPhone: organizer.phone || 'Non specifie',
+          organizerEmail: organizer.email || 'Non specifie',
+          organizerCommune: organizer.commune || 'Non specifie',
+          organizerDepartment: organizer.department || 'Non specifie',
+          // Infos evenement
+          contactName: demand.contactName,
+          eventNature: demand.eventNature,
+          eventDate: this.formatDate(new Date(demand.eventDate)),
+          approximateGuests: demand.approximateGuests || 'Non specifie',
+          location: demand.location || 'Non specifie',
+          geographicZone: demand.geographicZone || 'Non specifie',
+          budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non specifie',
+          additionalInfo: demand.additionalInfo || '',
+          platformUrl: this.platformUrl,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      this.logger.log(
+        `Mission confirmed email sent to provider ${provider.email} for demand ${demand.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send mission confirmed email to ${provider.email}: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
   // ==================== AUTH EMAILS ====================
 
   async sendEmailVerification(provider: Provider, token: string): Promise<void> {

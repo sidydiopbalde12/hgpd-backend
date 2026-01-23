@@ -252,8 +252,52 @@ export class DemandsService {
     dto: UpdateDemandProviderDto,
   ): Promise<DemandProvider> {
     const dp = await this.getDemandProviderById(id);
+    const previousStatus = dp.status;
+
     Object.assign(dp, dto);
-    return this.demandProviderRepository.save(dp);
+    const savedDp = await this.demandProviderRepository.save(dp);
+
+    // Envoyer email au prestataire si statut passe a MISSION_CONFIRMED
+    if (
+      dto.status === DemandStatus.MISSION_CONFIRMED &&
+      previousStatus !== DemandStatus.MISSION_CONFIRMED
+    ) {
+      await this.sendMissionConfirmedNotification(savedDp);
+    }
+
+    return savedDp;
+  }
+
+  private async sendMissionConfirmedNotification(dp: DemandProvider): Promise<void> {
+    try {
+      // Charger les relations necessaires si pas deja chargees
+      const demandProvider = await this.demandProviderRepository.findOne({
+        where: { id: dp.id },
+        relations: ['demand', 'demand.organizer', 'provider'],
+      });
+
+      if (!demandProvider?.demand?.organizer || !demandProvider?.provider) {
+        this.logger.warn(
+          `Cannot send mission confirmed email: missing demand, organizer or provider for DemandProvider ${dp.id}`,
+        );
+        return;
+      }
+
+      await this.mailService.sendMissionConfirmedEmail(
+        demandProvider.provider,
+        demandProvider.demand,
+        demandProvider.demand.organizer,
+      );
+
+      this.logger.log(
+        `Mission confirmed email sent for DemandProvider ${dp.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send mission confirmed email for DemandProvider ${dp.id}: ${error.message}`,
+      );
+      // Ne pas faire echouer la mise a jour si l'email echoue
+    }
   }
 
   async unlockContact(demandProviderId: string): Promise<DemandProvider> {
