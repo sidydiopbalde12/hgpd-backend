@@ -10,7 +10,23 @@ import {
   IsArray,
   IsUUID,
   ArrayMinSize,
+  ArrayMaxSize,
+  ValidateNested,
+  IsNotEmpty,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class CategoryBudgetDto {
+  @ApiProperty({ example: 1, description: 'ID de la catégorie' })
+  @IsInt()
+  @IsNotEmpty()
+  categoryId: number;
+
+  @ApiProperty({ example: 100000, description: 'Budget alloué pour cette catégorie' })
+  @IsNumber()
+  @Min(0)
+  amount: number;
+}
 
 export class CreateDemandDto {
   @ApiProperty({ example: 'organizerId' })
@@ -61,13 +77,25 @@ export class CreateDemandDto {
   additionalInfo?: string;
 
   @ApiProperty({
+    example: [{ categoryId: 1, amount: 100000 }, { categoryId: 2, amount: 200000 }],
+    description: 'Budgets par catégorie',
+    type: [CategoryBudgetDto],
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CategoryBudgetDto)
+  @ArrayMinSize(1)
+  categoryBudgets: CategoryBudgetDto[];
+
+  @ApiProperty({
     example: ['uuid-provider-1', 'uuid-provider-2'],
-    description: 'Liste des IDs des prestataires à notifier',
+    description: 'Liste des IDs des prestataires à notifier (max 5)',
     type: [String],
   })
   @IsOptional()
   @IsArray()
   @IsUUID('4', { each: true })
   @ArrayMinSize(1)
+  @ArrayMaxSize(5, { message: 'Vous ne pouvez pas sélectionner plus de 5 prestataires' })
   providerIds?: string[];
 }

@@ -188,3 +188,7 @@ hgpd-backend/
 ├── package.json
 ├── tsconfig.json
 └── README.md
+
+ 1. legal_documents : Stocke les CGU/CGV avec versioning                         
+  2. legal_acceptances : Trace les acceptations des prestataires (IP, User-Agent, 
+  date)   

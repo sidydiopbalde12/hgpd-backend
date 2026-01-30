@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirmation de votre demande</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #28a745;
+      padding-bottom: 20px;
+      margin-bottom: 25px;
+    }
+    .header h1 {
+      color: #28a745;
+      margin: 0;
+      font-size: 24px;
+    }
+    .success-badge {
+      background-color: #d4edda;
+      color: #155724;
+      padding: 15px 20px;
+      border-radius: 6px;
+      text-align: center;
+      margin-bottom: 25px;
+      border: 1px solid #c3e6cb;
+    }
+    .success-badge p {
+      margin: 0;
+      font-size: 16px;
+    }
+    .section {
+      background-color: #f8f9fa;
+      border-radius: 6px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .section h2 {
+      color: #495057;
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #dee2e6;
+      padding-bottom: 10px;
+    }
+    .detail-row {
+      display: flex;
+      margin-bottom: 12px;
+    }
+    .detail-label {
+      font-weight: 600;
+      color: #495057;
+      min-width: 160px;
+    }
+    .detail-value {
+      color: #212529;
+    }
+    .next-steps {
+      background-color: #e7f3ff;
+      border-left: 4px solid #007bff;
+      padding: 15px 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+    .next-steps h3 {
+      margin: 0 0 10px 0;
+      color: #0056b3;
+      font-size: 16px;
+    }
+    .next-steps ul {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .next-steps li {
+      margin-bottom: 8px;
+    }
+    .cta-button {
+      display: inline-block;
+      background-color: #28a745;
+      color: #ffffff !important;
+      padding: 12px 30px;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: 600;
+      margin-top: 20px;
+    }
+    .cta-container {
+      text-align: center;
+      margin: 25px 0;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #dee2e6;
+      color: #6c757d;
+      font-size: 12px;
+    }
+    .contact-info {
+      background-color: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 20px;
+    }
+    .contact-info p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>HGPD - Confirmation de demande</h1>
+    </div>
+
+    <div class="success-badge">
+      <p>Votre demande de prestation a bien ete enregistree !</p>
+    </div>
+
+    <p>Bonjour <strong>{{organizerName}}</strong>,</p>
+
+    <p>Nous avons bien recu votre demande de prestation et notre equipe la prend en charge. Vous serez contacte(e) dans les plus brefs delais.</p>
+
+    <!-- Recapitulatif de la demande -->
+    <div class="section">
+      <h2>Recapitulatif de votre demande</h2>
+
+      <div class="detail-row">
+        <span class="detail-label">Nom du contact :</span>
+        <span class="detail-value">{{contactName}}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Nature de l'evenement :</span>
+        <span class="detail-value">{{eventNature}}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Date de l'evenement :</span>
+        <span class="detail-value">{{eventDate}}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Nombre d'invites :</span>
+        <span class="detail-value">{{approximateGuests}}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Lieu :</span>
+        <span class="detail-value">{{location}}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Zone geographique :</span>
+        <span class="detail-value">{{geographicZone}}</span>
+      </div>
+
+      <div class="detail-row">
+        <span class="detail-label">Budget global estime :</span>
+        <span class="detail-value">{{budget}}</span>
+      </div>
+
+      {{#if hasCategoryBudgets}}
+      <div style="background-color: #e8f5e9; border-radius: 4px; padding: 15px; margin-top: 15px;">
+        <h3 style="margin-top: 0; font-size: 14px; color: #2e7d32;">Budgets par categorie</h3>
+        {{#each categoryBudgets}}
+        <div class="detail-row">
+          <span class="detail-label">{{categoryName}} :</span>
+          <span class="detail-value" style="font-weight: 600; color: #2e7d32;">{{amount}}</span>
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+
+      {{#if additionalInfo}}
+      <div class="detail-row">
+        <span class="detail-label">Informations :</span>
+        <span class="detail-value">{{additionalInfo}}</span>
+      </div>
+      {{/if}}
+    </div>
+
+    <!-- Prochaines etapes -->
+    <div class="next-steps">
+      <h3>Prochaines etapes</h3>
+      <ul>
+        <li>Notre equipe analyse votre demande et recherche les meilleurs prestataires</li>
+        <li>Les prestataires selectionnes vous contacteront avec leurs propositions</li>
+        <li>Vous pourrez comparer les offres et choisir celle qui vous convient</li>
+      </ul>
+    </div>
+
+    <div class="cta-container">
+      <a href="{{platformUrl}}" class="cta-button">Acceder a mon espace</a>
+    </div>
+
+    <div class="contact-info">
+      <p><strong>Une question ?</strong></p>
+      <p>N'hesitez pas a nous contacter si vous avez des questions concernant votre demande.</p>
+    </div>
+
+    <div class="footer">
+      <p>Cet email a ete envoye automatiquement par HGPD.</p>
+      <p>&copy; {{year}} HGPD - Tous droits reserves</p>
+    </div>
+  </div>
+</body>
+</html>

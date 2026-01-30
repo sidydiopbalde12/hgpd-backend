@@ -13,6 +13,7 @@ import {
 import { DemandStatus } from '../../common/enums';
 import { Organizer } from '../../organizers/entities/organizer.entity';
 import { DemandProvider } from './demand-provider.entity';
+import { DemandBudget } from './demand-budget.entity';
 
 @Entity('demands')
 @Index(['organizerId'])
@@ -76,4 +77,7 @@ export class Demand {
 
   @OneToMany(() => DemandProvider, (dp) => dp.demand)
   demandProviders: DemandProvider[];
+
+  @OneToMany(() => DemandBudget, (db) => db.demand)
+  demandBudgets: DemandBudget[];
 }

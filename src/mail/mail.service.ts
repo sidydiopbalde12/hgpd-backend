@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
 import { Demand } from '../demands/entities/demand.entity';
+import { DemandBudget } from '../demands/entities/demand-budget.entity';
 import { Provider } from '../providers/entities/provider.entity';
 import { Organizer } from '../organizers/entities/organizer.entity';
 
@@ -22,6 +23,8 @@ export class MailService {
   async sendDemandNotification(
     provider: Provider,
     demand: Demand,
+    demandBudgets?: DemandBudget[],
+    providerCategoryIds?: number[],
   ): Promise<void> {
     if (!provider.email) {
       this.logger.warn(
@@ -29,6 +32,16 @@ export class MailService {
       );
       return;
     }
+
+    // Filtrer les budgets pour ne montrer que ceux correspondant aux catégories du prestataire
+    const providerBudgets = demandBudgets && providerCategoryIds
+      ? demandBudgets
+          .filter((db) => providerCategoryIds.includes(db.categoryId))
+          .map((db) => ({
+            categoryName: db.category?.name || 'Catégorie',
+            amount: this.formatCurrency(Number(db.amount)),
+          }))
+      : [];
 
     try {
       await this.mailerService.sendMail({
@@ -45,6 +58,8 @@ export class MailService {
           location: demand.location || 'Non spécifié',
           geographicZone: demand.geographicZone || 'Non spécifié',
           budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non spécifié',
+          categoryBudgets: providerBudgets,
+          hasCategoryBudgets: providerBudgets.length > 0,
           additionalInfo: demand.additionalInfo || 'Aucune information supplémentaire',
           platformUrl: this.platformUrl,
           year: new Date().getFullYear(),
@@ -65,12 +80,15 @@ export class MailService {
   async sendDemandNotificationToMultipleProviders(
     providers: Provider[],
     demand: Demand,
+    demandBudgets?: DemandBudget[],
+    providerCategoriesMap?: Map<string, number[]>,
   ): Promise<{ success: string[]; failed: string[] }> {
     const results = { success: [] as string[], failed: [] as string[] };
 
     for (const provider of providers) {
       try {
-        await this.sendDemandNotification(provider, demand);
+        const providerCategoryIds = providerCategoriesMap?.get(provider.id) || [];
+        await this.sendDemandNotification(provider, demand, demandBudgets, providerCategoryIds);
         if (provider.email) {
           results.success.push(provider.email);
         }
@@ -88,6 +106,7 @@ export class MailService {
     demand: Demand,
     organizer: Organizer,
     providers: Provider[],
+    demandBudgets?: DemandBudget[],
   ): Promise<void> {
     try {
       const providersData = providers.map((provider) => ({
@@ -97,6 +116,14 @@ export class MailService {
         phone: provider.phone || 'Non spécifié',
         category: provider.activity || 'Non spécifié',
       }));
+
+      // Formater les budgets par catégorie
+      const categoryBudgetsData = demandBudgets
+        ? demandBudgets.map((db) => ({
+            categoryName: db.category?.name || 'Catégorie',
+            amount: this.formatCurrency(Number(db.amount)),
+          }))
+        : [];
 
       await this.mailerService.sendMail({
         to: this.adminEmail,
@@ -117,6 +144,8 @@ export class MailService {
           location: demand.location || 'Non spécifié',
           geographicZone: demand.geographicZone || 'Non spécifié',
           budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non spécifié',
+          categoryBudgets: categoryBudgetsData,
+          hasCategoryBudgets: categoryBudgetsData.length > 0,
           additionalInfo: demand.additionalInfo || 'Aucune information supplémentaire',
           // Prestataires
           providers: providersData,
@@ -132,6 +161,61 @@ export class MailService {
         `Failed to send admin notification for demand ${demand.id}: ${error.message}`,
       );
       // Ne pas faire échouer la création de la demande si l'email admin échoue
+    }
+  }
+
+  // ==================== ORGANIZER CONFIRMATION EMAIL ====================
+
+  async sendDemandConfirmationToOrganizer(
+    organizer: Organizer,
+    demand: Demand,
+    demandBudgets?: DemandBudget[],
+  ): Promise<void> {
+    if (!organizer.email) {
+      this.logger.warn(
+        `Organizer ${organizer.id} has no email address, skipping demand confirmation email`,
+      );
+      return;
+    }
+
+    // Formater les budgets par catégorie
+    const categoryBudgetsData = demandBudgets
+      ? demandBudgets.map((db) => ({
+          categoryName: db.category?.name || 'Catégorie',
+          amount: this.formatCurrency(Number(db.amount)),
+        }))
+      : [];
+
+    try {
+      await this.mailerService.sendMail({
+        to: organizer.email,
+        subject: `Confirmation de votre demande - ${demand.eventNature} - HGPD`,
+        template: 'organizer-demand-confirmation',
+        context: {
+          organizerName: `${organizer.firstName} ${organizer.lastName}`,
+          contactName: demand.contactName,
+          eventNature: demand.eventNature,
+          eventDate: this.formatDate(new Date(demand.eventDate)),
+          approximateGuests: demand.approximateGuests || 'Non specifie',
+          location: demand.location || 'Non specifie',
+          geographicZone: demand.geographicZone || 'Non specifie',
+          budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non specifie',
+          categoryBudgets: categoryBudgetsData,
+          hasCategoryBudgets: categoryBudgetsData.length > 0,
+          additionalInfo: demand.additionalInfo || '',
+          platformUrl: this.platformUrl,
+          year: new Date().getFullYear(),
+        },
+      });
+
+      this.logger.log(
+        `Demand confirmation email sent to organizer ${organizer.email} for demand ${demand.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to send demand confirmation email to ${organizer.email}: ${error.message}`,
+      );
+      // Ne pas faire echouer la creation de la demande si l'email echoue
     }
   }
 

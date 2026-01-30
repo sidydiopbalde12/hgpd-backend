@@ -15,6 +15,7 @@ export { SubCategory } from '../categories/entities/sub-category.entity';
 // Demands
 export { Demand } from '../demands/entities/demand.entity';
 export { DemandProvider } from '../demands/entities/demand-provider.entity';
+export { DemandBudget } from '../demands/entities/demand-budget.entity';
 
 // Reviews
 export { Review } from '../reviews/entities/review.entity';

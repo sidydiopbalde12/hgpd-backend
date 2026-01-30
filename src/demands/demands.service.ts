@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Demand } from './entities/demand.entity';
 import { DemandProvider } from './entities/demand-provider.entity';
+import { DemandBudget } from './entities/demand-budget.entity';
 import { Provider } from '../providers/entities/provider.entity';
 import { Organizer } from '../organizers/entities/organizer.entity';
+import { ProviderCategory } from '../providers/entities/provider-category.entity';
 import { DemandStatus } from '../common/enums';
 import {
   CreateDemandDto,
@@ -15,6 +17,8 @@ import {
 import { MailService } from '../mail/mail.service';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
 
+const MAX_PROVIDERS_PER_DEMAND = 5;
+
 @Injectable()
 export class DemandsService {
   private readonly logger = new Logger(DemandsService.name);
@@ -24,32 +28,55 @@ export class DemandsService {
     private readonly demandRepository: Repository<Demand>,
     @InjectRepository(DemandProvider)
     private readonly demandProviderRepository: Repository<DemandProvider>,
+    @InjectRepository(DemandBudget)
+    private readonly demandBudgetRepository: Repository<DemandBudget>,
     @InjectRepository(Provider)
     private readonly providerRepository: Repository<Provider>,
     @InjectRepository(Organizer)
     private readonly organizerRepository: Repository<Organizer>,
+    @InjectRepository(ProviderCategory)
+    private readonly providerCategoryRepository: Repository<ProviderCategory>,
     private readonly mailService: MailService,
     private readonly whatsAppService: WhatsAppService,
   ) {}
 
   // Demands CRUD
   async create(dto: CreateDemandDto): Promise<Demand> {
-    const { providerIds, ...demandData } = dto;
+    const { providerIds, categoryBudgets, ...demandData } = dto;
+
+    // Valider les prestataires si fournis
+    if (providerIds && providerIds.length > 0) {
+      await this.validateProvidersHaveBudget(providerIds, categoryBudgets);
+    }
 
     const demand = this.demandRepository.create(demandData);
     const savedDemand = await this.demandRepository.save(demand);
+
+    // Sauvegarder les budgets par catégorie
+    await this.saveCategoryBudgets(savedDemand.id, categoryBudgets);
+
+    // Récupérer les budgets sauvegardés avec les relations (catégories)
+    const savedBudgets = await this.demandBudgetRepository.find({
+      where: { demandId: savedDemand.id },
+      relations: ['category'],
+    });
 
     // Récupérer l'organisateur pour les notifications
     const organizer = await this.organizerRepository.findOne({
       where: { id: savedDemand.organizerId },
     });
 
+    // Envoyer email de confirmation à l'organisateur
+    if (organizer) {
+      await this.mailService.sendDemandConfirmationToOrganizer(organizer, savedDemand, savedBudgets);
+    }
+
     if (providerIds && providerIds.length > 0) {
-      await this.assignMultipleProvidersAndNotify(savedDemand, providerIds, organizer);
+      await this.assignMultipleProvidersAndNotify(savedDemand, providerIds, organizer, savedBudgets);
     } else {
       // Envoyer les notifications admin meme si aucun prestataire n'est assigne
       if (organizer) {
-        await this.mailService.sendDemandNotificationToAdmin(savedDemand, organizer, []);
+        await this.mailService.sendDemandNotificationToAdmin(savedDemand, organizer, [], savedBudgets);
         await this.whatsAppService.sendDemandNotificationToAdmin(savedDemand, organizer, []);
       }
     }
@@ -61,6 +88,7 @@ export class DemandsService {
     demand: Demand,
     providerIds: string[],
     organizer: Organizer | null,
+    demandBudgets?: DemandBudget[],
   ): Promise<void> {
     const providers = await this.providerRepository.find({
       where: { id: In(providerIds) },
@@ -70,7 +98,7 @@ export class DemandsService {
       this.logger.warn(`No valid providers found for IDs: ${providerIds.join(', ')}`);
       // Envoyer les notifications admin meme sans prestataires
       if (organizer) {
-        await this.mailService.sendDemandNotificationToAdmin(demand, organizer, []);
+        await this.mailService.sendDemandNotificationToAdmin(demand, organizer, [], demandBudgets);
         await this.whatsAppService.sendDemandNotificationToAdmin(demand, organizer, []);
       }
       return;
@@ -89,10 +117,26 @@ export class DemandsService {
       `Assigned ${providers.length} providers to demand ${demand.id}`,
     );
 
+    // Récupérer les catégories de tous les prestataires pour le mail
+    const providerCategories = await this.providerCategoryRepository.find({
+      where: { providerId: In(providerIds) },
+    });
+
+    // Créer une map providerId -> categoryIds[]
+    const providerCategoriesMap = new Map<string, number[]>();
+    for (const pc of providerCategories) {
+      if (!providerCategoriesMap.has(pc.providerId)) {
+        providerCategoriesMap.set(pc.providerId, []);
+      }
+      providerCategoriesMap.get(pc.providerId)!.push(pc.categoryId);
+    }
+
     // Send email notifications to all providers
     const emailResults = await this.mailService.sendDemandNotificationToMultipleProviders(
       providers,
       demand,
+      demandBudgets,
+      providerCategoriesMap,
     );
 
     this.logger.log(
@@ -111,7 +155,7 @@ export class DemandsService {
 
     // Send admin notifications (email + WhatsApp) with all details
     if (organizer) {
-      await this.mailService.sendDemandNotificationToAdmin(demand, organizer, providers);
+      await this.mailService.sendDemandNotificationToAdmin(demand, organizer, providers, demandBudgets);
       await this.whatsAppService.sendDemandNotificationToAdmin(demand, organizer, providers);
     }
   }
@@ -159,6 +203,8 @@ export class DemandsService {
         'demandProviders',
         'demandProviders.provider',
         'demandProviders.payment',
+        'demandBudgets',
+        'demandBudgets.category',
       ],
     });
     if (!demand) {
@@ -189,7 +235,18 @@ export class DemandsService {
     demandId: string,
     dto: AssignProviderDto,
   ): Promise<DemandProvider> {
-    await this.findById(demandId);
+    const demand = await this.findById(demandId);
+
+    // Vérifier la limite de prestataires
+    const currentProviderCount = await this.demandProviderRepository.count({
+      where: { demandId },
+    });
+
+    if (currentProviderCount >= MAX_PROVIDERS_PER_DEMAND) {
+      throw new BadRequestException(
+        `Cette demande a déjà atteint la limite de ${MAX_PROVIDERS_PER_DEMAND} prestataires`,
+      );
+    }
 
     const existing = await this.demandProviderRepository.findOne({
       where: { demandId, providerId: dto.providerId },
@@ -197,6 +254,9 @@ export class DemandsService {
     if (existing) {
       return existing;
     }
+
+    // Vérifier que le prestataire a un budget correspondant à sa catégorie
+    await this.validateProviderHasBudgetForDemand(dto.providerId, demandId);
 
     const dp = this.demandProviderRepository.create({
       demandId,
@@ -304,6 +364,104 @@ export class DemandsService {
     const dp = await this.getDemandProviderById(demandProviderId);
     dp.contactUnlockedAt = new Date();
     return this.demandProviderRepository.save(dp);
+  }
+
+  // Budget par catégorie - méthodes privées
+  private async saveCategoryBudgets(
+    demandId: string,
+    categoryBudgets: { categoryId: number; amount: number }[],
+  ): Promise<void> {
+    const budgetEntities = categoryBudgets.map((cb) =>
+      this.demandBudgetRepository.create({
+        demandId,
+        categoryId: cb.categoryId,
+        amount: cb.amount,
+      }),
+    );
+    await this.demandBudgetRepository.save(budgetEntities);
+  }
+
+  private async validateProvidersHaveBudget(
+    providerIds: string[],
+    categoryBudgets: { categoryId: number; amount: number }[],
+  ): Promise<void> {
+    const budgetCategoryIds = new Set(categoryBudgets.map((cb) => cb.categoryId));
+
+    // Récupérer les catégories de tous les prestataires
+    const providerCategories = await this.providerCategoryRepository.find({
+      where: { providerId: In(providerIds) },
+    });
+
+    // Grouper par prestataire
+    const categoriesByProvider = new Map<string, number[]>();
+    for (const pc of providerCategories) {
+      if (!categoriesByProvider.has(pc.providerId)) {
+        categoriesByProvider.set(pc.providerId, []);
+      }
+      categoriesByProvider.get(pc.providerId)!.push(pc.categoryId);
+    }
+
+    // Vérifier que chaque prestataire a au moins une catégorie avec un budget
+    for (const providerId of providerIds) {
+      const providerCategoryIds = categoriesByProvider.get(providerId) || [];
+      const hasBudget = providerCategoryIds.some((catId) => budgetCategoryIds.has(catId));
+
+      if (!hasBudget) {
+        // Récupérer le nom du prestataire pour un message d'erreur plus clair
+        const provider = await this.providerRepository.findOne({
+          where: { id: providerId },
+        });
+        const providerName = provider
+          ? `${provider.firstName} ${provider.lastName}`
+          : providerId;
+
+        throw new BadRequestException(
+          `Le prestataire "${providerName}" n'a pas de budget défini pour sa catégorie. ` +
+            `Veuillez ajouter un budget pour au moins une de ses catégories.`,
+        );
+      }
+    }
+  }
+
+  private async validateProviderHasBudgetForDemand(
+    providerId: string,
+    demandId: string,
+  ): Promise<void> {
+    // Récupérer les catégories du prestataire
+    const providerCategories = await this.providerCategoryRepository.find({
+      where: { providerId },
+    });
+
+    if (providerCategories.length === 0) {
+      throw new BadRequestException(
+        `Le prestataire n'a aucune catégorie assignée`,
+      );
+    }
+
+    const providerCategoryIds = providerCategories.map((pc) => pc.categoryId);
+
+    // Récupérer les budgets de la demande
+    const demandBudgets = await this.demandBudgetRepository.find({
+      where: { demandId },
+    });
+
+    const budgetCategoryIds = new Set(demandBudgets.map((db) => db.categoryId));
+
+    // Vérifier qu'au moins une catégorie du prestataire a un budget
+    const hasBudget = providerCategoryIds.some((catId) => budgetCategoryIds.has(catId));
+
+    if (!hasBudget) {
+      const provider = await this.providerRepository.findOne({
+        where: { id: providerId },
+      });
+      const providerName = provider
+        ? `${provider.firstName} ${provider.lastName}`
+        : providerId;
+
+      throw new BadRequestException(
+        `Le prestataire "${providerName}" n'a pas de budget défini pour sa catégorie dans cette demande.`,
+      );
+    }
   }
 
   async removeProvider(demandId: string, providerId: string): Promise<void> {
