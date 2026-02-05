@@ -21,15 +21,20 @@ import {
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
-  // Categories endpoints
+  // Categories endpoints - specific routes BEFORE generic routes
   @Post()
   createCategory(@Body() dto: CreateCategoryDto) {
     return this.categoriesService.createCategory(dto);
   }
 
-  @Get()
-  findAllCategories() {
-    return this.categoriesService.findAllCategories();
+  @Get('stats/with-provider-counts')
+  async findAllCategoriesWithProviderCounts() {
+    return this.categoriesService.findAllCategoriesWithProviderCounts();
+  }
+
+  @Get('slug/:slug')
+  findCategoryBySlug(@Param('slug') slug: string) {
+    return this.categoriesService.findCategoryBySlug(slug);
   }
 
   @Get(':id')
@@ -37,9 +42,9 @@ export class CategoriesController {
     return this.categoriesService.findCategoryById(id);
   }
 
-  @Get('slug/:slug')
-  findCategoryBySlug(@Param('slug') slug: string) {
-    return this.categoriesService.findCategoryBySlug(slug);
+  @Get()
+  findAllCategories() {
+    return this.categoriesService.findAllCategories();
   }
 
   @Patch(':id')

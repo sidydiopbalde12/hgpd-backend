@@ -39,7 +39,11 @@ export class LegalDocument {
   @Column({ name: 'is_active', type: 'boolean', default: false })
   isActive: boolean;
 
-  @Column({ name: 'published_at', type: 'timestamp with time zone', nullable: true })
+  @Column({
+    name: 'published_at',
+    type: 'timestamp with time zone',
+    nullable: true,
+  })
   publishedAt: Date;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })

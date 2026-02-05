@@ -14,6 +14,7 @@ import {
   HttpCode,
 } from '@nestjs/common';
 import { ProvidersService } from './providers.service';
+import { LegalService } from '../legal/legal.service';
 import { ResponseMessage } from '../common/decorators/api-response.decorator';
 import {
   CreateProviderDto,
@@ -26,7 +27,10 @@ import { ApiOperation, ApiQuery } from '@nestjs/swagger';
 
 @Controller('providers')
 export class ProvidersController {
-  constructor(private readonly providersService: ProvidersService) {}
+  constructor(
+    private readonly providersService: ProvidersService,
+    private readonly legalService: LegalService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Créer un prestataire' })
@@ -54,17 +58,24 @@ export class ProvidersController {
     return await this.providersService.findAll({
       department,
       categoryId: categoryId ? parseInt(categoryId, 10) : undefined,
-      isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+      isActive:
+        isActive === 'true' ? true : isActive === 'false' ? false : undefined,
       page: page ? parseInt(page, 10) : 1,
       limit: limit ? parseInt(limit, 10) : 20,
     });
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Détails d\'un prestataire' })
+  @ApiOperation({ summary: "Détails d'un prestataire" })
   @ResponseMessage('Prestataire récupéré avec succès')
-  findById(@Param('id', ParseUUIDPipe) id: string) {
-    return this.providersService.findById(id);
+  async findById(@Param('id', ParseUUIDPipe) id: string) {
+    const provider = await this.providersService.findById(id);
+    const legalStatus =
+      await this.legalService.hasProviderAcceptedActiveDocuments(id);
+    return {
+      ...provider,
+      legalStatus,
+    };
   }
 
   @Get(':id/stats')
@@ -96,7 +107,7 @@ export class ProvidersController {
   }
 
   @Delete(':id')
-   @ApiOperation({ summary: 'Supprimer un prestataire' })
+  @ApiOperation({ summary: 'Supprimer un prestataire' })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ResponseMessage('Prestataire supprimé avec succès')
   remove(@Param('id', ParseUUIDPipe) id: string) {

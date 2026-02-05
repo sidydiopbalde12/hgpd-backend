@@ -8,7 +8,10 @@ export class VerifyEmailDto {
 }
 
 export class ResendVerificationDto {
-  @ApiProperty({ example: 's.balde@hgpd.fr', description: 'Adresse email a verifier' })
+  @ApiProperty({
+    example: 's.balde@hgpd.fr',
+    description: 'Adresse email a verifier',
+  })
   @IsEmail({}, { message: 'Adresse email invalide' })
   email: string;
 }

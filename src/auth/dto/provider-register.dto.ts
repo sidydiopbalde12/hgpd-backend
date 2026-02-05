@@ -47,30 +47,48 @@ export class ProviderRegisterDto {
   @Matches(/^\+?[0-9]{9,15}$/, { message: 'Numero de telephone invalide' })
   phone: string;
 
-  @ApiPropertyOptional({ example: 's.balde@hgpd.fr', description: 'Adresse email' })
+  @ApiPropertyOptional({
+    example: 's.balde@hgpd.fr',
+    description: 'Adresse email',
+  })
   @IsOptional()
   @IsEmail({}, { message: 'Adresse email invalide' })
   @MaxLength(255)
   email?: string;
 
-  @ApiProperty({ example: 'MotDePasse123!', description: 'Mot de passe (min 8 caracteres, 1 majuscule, 1 minuscule, 1 chiffre)' })
+  @ApiProperty({
+    example: 'MotDePasse123!',
+    description:
+      'Mot de passe (min 8 caracteres, 1 majuscule, 1 minuscule, 1 chiffre)',
+  })
   @IsString()
   @MinLength(8)
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/, {
-    message: 'Le mot de passe doit contenir au moins 8 caracteres, une majuscule, une minuscule et un chiffre',
+    message:
+      'Le mot de passe doit contenir au moins 8 caracteres, une majuscule, une minuscule et un chiffre',
   })
   password: string;
 
-  @ApiProperty({ enum: IdentityDocType, example: IdentityDocType.PASSPORT, description: 'Type de document identite' })
+  @ApiProperty({
+    enum: IdentityDocType,
+    example: IdentityDocType.PASSPORT,
+    description: 'Type de document identite',
+  })
   @IsEnum(IdentityDocType)
   identityDocType: IdentityDocType;
 
-  @ApiProperty({ example: 'AB1234567', description: 'Numero du document identite' })
+  @ApiProperty({
+    example: 'AB1234567',
+    description: 'Numero du document identite',
+  })
   @IsString()
   @MaxLength(50)
   identityDocNumber: string;
 
-  @ApiPropertyOptional({ example: true, description: 'Afficher le numero de telephone' })
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Afficher le numero de telephone',
+  })
   @IsOptional()
   @IsBoolean()
   showPhoneNumber?: boolean;

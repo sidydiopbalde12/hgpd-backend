@@ -1,29 +1,38 @@
+import 'crypto';
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as express from 'express';
+import { join } from 'path';
 import { AppModule } from './app.module';
 import { TransformResponseInterceptor } from './common/interceptors/transform-response.interceptor';
-import { HttpExceptionFilter, AllExceptionsFilter } from './common/filters/http-exception.filter';
+import {
+  HttpExceptionFilter,
+  AllExceptionsFilter,
+} from './common/filters/http-exception.filter';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   const configService = app.get(ConfigService);
+
+  // Serve static files (uploads directory)
+  const uploadPath = join(process.cwd(), 'uploads');
+  app.use('/uploads', express.static(uploadPath));
 
   // Préfixe global API
   const apiPrefix = configService.get<string>('API_PREFIX') || 'api/v1';
   app.setGlobalPrefix(apiPrefix);
 
   // CORS
-  const corsOrigin = configService.get<string>('CORS_ORIGIN') || 'http://localhost:3001';
+  const corsOrigin =
+    configService.get<string>('CORS_ORIGIN') ||
+    'http://localhost:5173,http://localhost:3001';
   app.enableCors({
     origin: corsOrigin.split(','),
     credentials: true,
   });
-  app.useGlobalFilters(
-    new AllExceptionsFilter(),
-    new HttpExceptionFilter(),
-  );
+  app.useGlobalFilters(new AllExceptionsFilter(), new HttpExceptionFilter());
   // Validation globale
   app.useGlobalPipes(
     new ValidationPipe({

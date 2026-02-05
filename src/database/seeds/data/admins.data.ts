@@ -11,7 +11,8 @@ export interface AdminSeedData {
 
 // Mot de passe par defaut: "Admin@HGPD2024!" (hashe avec bcrypt, 10 rounds)
 // IMPORTANT: Changer ce mot de passe en production !
-const DEFAULT_PASSWORD_HASH = '$2b$10$4KYvRQXnB061UVJpU6.S6.SyujhPuk3weohwkjea7NXRHPqhMezDS';
+const DEFAULT_PASSWORD_HASH =
+  '$2b$10$4KYvRQXnB061UVJpU6.S6.SyujhPuk3weohwkjea7NXRHPqhMezDS';
 
 export const adminsSeedData: AdminSeedData[] = [
   {

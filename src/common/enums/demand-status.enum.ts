@@ -15,7 +15,7 @@ export enum DemandStatus {
 
 export const DemandStatusLabels = {
   [DemandStatus.NEW_REQUEST]: 'Nouvelle demande',
-  [DemandStatus.UNDER_STUDY]: 'En cours d\'étude',
+  [DemandStatus.UNDER_STUDY]: "En cours d'étude",
   [DemandStatus.PROPOSAL_SENT]: 'Proposition envoyée',
   [DemandStatus.REFUSED_BY_PROVIDER]: 'Refusée par le prestataire',
   [DemandStatus.ACCEPTED_BY_CLIENT]: 'Acceptée par le client',

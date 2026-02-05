@@ -1,16 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Payment } from './entities/payment.entity';
-import { PaymentStatus } from '../common/enums';
+import { PaymentStatus, NotificationType, NotificationChannel } from '../common/enums';
 import { CreatePaymentDto, UpdatePaymentDto } from './dto';
+import { DemandsService } from '../demands/demands.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { EventsGateway } from '../events/events.gateway';
+
+import { Admin } from '../auth/entities/admin.entity';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     @InjectRepository(Payment)
     private readonly paymentRepository: Repository<Payment>,
-  ) {}
+    @InjectRepository(Admin)
+    private readonly adminRepository: Repository<Admin>,
+    @Inject(forwardRef(() => DemandsService))
+    private readonly demandsService: DemandsService,
+    private readonly notificationsService: NotificationsService,
+    private readonly eventsGateway: EventsGateway,
+  ) { }
 
   async create(dto: CreatePaymentDto): Promise<Payment> {
     const payment = this.paymentRepository.create({
@@ -53,7 +64,9 @@ export class PaymentsService {
     return payment;
   }
 
-  async findByWaveTransactionId(waveTransactionId: string): Promise<Payment | null> {
+  async findByWaveTransactionId(
+    waveTransactionId: string,
+  ): Promise<Payment | null> {
     return this.paymentRepository.findOne({
       where: { waveTransactionId },
       relations: ['provider', 'demandProvider'],
@@ -89,7 +102,37 @@ export class PaymentsService {
     if (waveTransactionId) {
       payment.waveTransactionId = waveTransactionId;
     }
-    return this.paymentRepository.save(payment);
+    const savedPayment = await this.paymentRepository.save(payment);
+
+    // Si c'est un paiement pour débloquer un contact
+    if (savedPayment.demandProviderId) {
+      await this.demandsService.unlockContact(savedPayment.demandProviderId);
+
+      // Notify Admin
+      this.eventsGateway.emitToAdmin('payment_completed', {
+        paymentId: savedPayment.id,
+        amount: savedPayment.amount,
+        providerId: savedPayment.providerId
+      });
+
+      // Notify ALL active admins
+      const activeAdmins = await this.adminRepository.find({ where: { isActive: true } });
+      for (const admin of activeAdmins) {
+        await this.notificationsService.createNotification({
+          recipientId: admin.id,
+          recipientType: 'admin',
+          type: NotificationType.PAYMENT_CONFIRMATION,
+          channel: NotificationChannel.EMAIL,
+          content: {
+            paymentId: savedPayment.id,
+            amount: savedPayment.amount,
+            message: `Nouveau paiement de ${savedPayment.amount} XOF reçu du prestataire ${savedPayment.providerId}`,
+          },
+        });
+      }
+    }
+
+    return savedPayment;
   }
 
   async markAsFailed(id: string): Promise<Payment> {

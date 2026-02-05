@@ -28,6 +28,15 @@ export class SubCategory {
   @Column({ type: 'varchar', length: 100 })
   slug: string;
 
+  @Column({ name: 'display_order', type: 'int', default: 0 })
+  displayOrder: number;
+
+  @Column({ type: 'boolean', default: false })
+  isDefault: boolean;
+
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })
   createdAt: Date;
 

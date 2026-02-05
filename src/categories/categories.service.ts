@@ -32,6 +32,37 @@ export class CategoriesService {
     });
   }
 
+  /**
+   * Get all categories with provider counts
+   */
+  async findAllCategoriesWithProviderCounts(): Promise<any[]> {
+    const categories = await this.categoryRepository.find({
+      order: { displayOrder: 'ASC' },
+      relations: ['subCategories'],
+    });
+
+    // Get provider counts for each category
+    const results = await Promise.all(
+      categories.map(async (category) => {
+        const count = await this.categoryRepository.query(
+          `
+          SELECT COUNT(DISTINCT pc.provider_id) as provider_count
+          FROM provider_categories pc
+          WHERE pc.category_id = $1
+        `,
+          [category.id],
+        );
+
+        return {
+          ...category,
+          providerCount: parseInt(count[0]?.provider_count || '0'),
+        };
+      }),
+    );
+
+    return results;
+  }
+
   async findCategoryById(id: number): Promise<Category> {
     const category = await this.categoryRepository.findOne({
       where: { id },

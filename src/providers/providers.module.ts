@@ -7,6 +7,7 @@ import { ProviderPhoto } from './entities/provider-photo.entity';
 import { ProviderVideo } from './entities/provider-video.entity';
 import { ProviderCategory } from './entities/provider-category.entity';
 import { ProviderStats } from './entities/provider-stats.entity';
+import { LegalModule } from '../legal/legal.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ProviderStats } from './entities/provider-stats.entity';
       ProviderCategory,
       ProviderStats,
     ]),
+    LegalModule,
   ],
   providers: [ProvidersService],
   controllers: [ProvidersController],

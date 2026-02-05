@@ -22,10 +22,25 @@ export class CategoryBudgetDto {
   @IsNotEmpty()
   categoryId: number;
 
-  @ApiProperty({ example: 100000, description: 'Budget alloué pour cette catégorie' })
+  @ApiProperty({
+    example: 100000,
+    description: 'Budget alloué pour cette catégorie',
+  })
   @IsNumber()
   @Min(0)
   amount: number;
+}
+
+export class ProviderBudgetDto {
+  @ApiProperty({ example: 'uuid-provider-1' })
+  @IsString()
+  @IsNotEmpty()
+  providerId: string;
+
+  @ApiProperty({ example: 50000, description: 'Budget estimé pour ce prestataire' })
+  @IsNumber()
+  @Min(0)
+  budget: number;
 }
 
 export class CreateDemandDto {
@@ -71,13 +86,16 @@ export class CreateDemandDto {
   @Min(0)
   budget?: number;
 
-  @ApiProperty({ example: 'Information supplémentaire sur l\'événement' })
+  @ApiProperty({ example: "Information supplémentaire sur l'événement" })
   @IsOptional()
   @IsString()
   additionalInfo?: string;
 
   @ApiProperty({
-    example: [{ categoryId: 1, amount: 100000 }, { categoryId: 2, amount: 200000 }],
+    example: [
+      { categoryId: 1, amount: 100000 },
+      { categoryId: 2, amount: 200000 },
+    ],
     description: 'Budgets par catégorie',
     type: [CategoryBudgetDto],
   })
@@ -88,14 +106,30 @@ export class CreateDemandDto {
   categoryBudgets: CategoryBudgetDto[];
 
   @ApiProperty({
-    example: ['uuid-provider-1', 'uuid-provider-2'],
-    description: 'Liste des IDs des prestataires à notifier (max 5)',
-    type: [String],
+    example: [
+      { providerId: 'uuid-provider-1', budget: 50000 },
+    ],
+    description: 'Budgets par prestataire',
+    type: [ProviderBudgetDto],
+    required: false,
   })
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
-  @ArrayMinSize(1)
-  @ArrayMaxSize(5, { message: 'Vous ne pouvez pas sélectionner plus de 5 prestataires' })
+  @ValidateNested({ each: true })
+  @Type(() => ProviderBudgetDto)
+  providerBudgets?: ProviderBudgetDto[];
+
+  @ApiProperty({
+    example: ['uuid-provider-1', 'uuid-provider-2'],
+    description: 'Liste des IDs des prestataires à notifier (max 5)',
+    type: [String],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMaxSize(5, {
+    message: 'Vous ne pouvez pas sélectionner plus de 5 prestataires',
+  })
   providerIds?: string[];
 }

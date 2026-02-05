@@ -10,7 +10,8 @@ import {
 import { IdentityDocType } from '../../common/enums';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateProviderDto {w
+export class CreateProviderDto {
+  w;
   @ApiProperty({ example: 'Sidy' })
   @IsString()
   @MaxLength(100)
@@ -26,10 +27,16 @@ export class CreateProviderDto {w
   @MaxLength(200)
   companyName: string;
 
-  @ApiProperty({ example: 'Dj' })
+  @ApiProperty({ example: 'Informatique' })
   @IsString()
   @MaxLength(200)
   activity: string;
+
+  @ApiProperty({ example: 'Description courte du prestataire' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  shortDescription?: string;
 
   @ApiProperty({ example: 'Dakar' })
   @IsString()
@@ -65,7 +72,7 @@ export class CreateProviderDto {w
   @IsString()
   @MaxLength(50)
   identityDocNumber: string;
-  
+
   @ApiProperty({ example: true })
   @IsOptional()
   @IsBoolean()

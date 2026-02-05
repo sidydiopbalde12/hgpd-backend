@@ -42,6 +42,10 @@ export class Provider {
   @Column({ type: 'varchar', length: 200 })
   activity: string;
 
+  // Description courte
+  @Column({ type: 'text', nullable: true })
+  shortDescription: string;
+
   // Localisation
   @Column({ type: 'varchar', length: 100 })
   department: string;

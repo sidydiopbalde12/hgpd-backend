@@ -9,6 +9,10 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Admin } from './entities/admin.entity';
 import { AdminRole } from '../common/enums';
+import { User } from '../users/entities/users.entities';
+import { Provider } from '../providers/entities/provider.entity';
+import { Demand } from '../demands/entities/demand.entity';
+import { DemandStatus } from '../common/enums/demand-status.enum';
 
 export interface CreateAdminDto {
   firstName: string;
@@ -18,6 +22,29 @@ export interface CreateAdminDto {
   role?: AdminRole;
 }
 
+export interface AdminStats {
+  totalUsers: number;
+  providers: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
+  demands: {
+    total: number;
+    accepted: number;
+    refused: number;
+    pending: number;
+    pendingPayment: number;
+  };
+  payments: {
+    totalRevenue: number;
+    completed: number;
+    pending: number;
+  };
+  totalAdmins: number;
+  timestamp: Date;
+}
+
 @Injectable()
 export class AdminService {
   private readonly logger = new Logger(AdminService.name);
@@ -25,6 +52,12 @@ export class AdminService {
   constructor(
     @InjectRepository(Admin)
     private readonly adminRepository: Repository<Admin>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    @InjectRepository(Provider)
+    private readonly providerRepository: Repository<Provider>,
+    @InjectRepository(Demand)
+    private readonly demandRepository: Repository<Demand>,
   ) {}
 
   async create(dto: CreateAdminDto): Promise<Admin> {
@@ -97,5 +130,61 @@ export class AdminService {
     await this.adminRepository.remove(admin);
 
     this.logger.log(`Admin ${id} removed`);
+  }
+
+  async getGlobalStats(): Promise<AdminStats> {
+    const [
+      totalUsers,
+      totalProviders,
+      activeProviders,
+      inactiveProviders,
+      totalDemands,
+      acceptedDemands,
+      refusedDemands,
+      pendingDemands,
+      totalAdmins,
+    ] = await Promise.all([
+      this.userRepository.count(),
+      this.providerRepository.count(),
+      this.providerRepository.count({ where: { isActive: true } }),
+      this.providerRepository.count({ where: { isActive: false } }),
+      this.demandRepository.count(),
+      this.demandRepository.count({
+        where: { status: DemandStatus.ACCEPTED_BY_CLIENT },
+      }),
+      this.demandRepository.count({
+        where: [
+          { status: DemandStatus.REFUSED_BY_PROVIDER },
+          { status: DemandStatus.REFUSED_BY_CLIENT },
+        ],
+      }),
+      this.demandRepository.count({
+        where: { status: DemandStatus.NEW_REQUEST },
+      }),
+      this.adminRepository.count(),
+    ]);
+
+    return {
+      totalUsers,
+      providers: {
+        total: totalProviders,
+        active: activeProviders,
+        inactive: inactiveProviders,
+      },
+      demands: {
+        total: totalDemands,
+        accepted: acceptedDemands,
+        refused: refusedDemands,
+        pending: pendingDemands,
+        pendingPayment: pendingDemands, // Alias for compatibility
+      },
+      payments: {
+        totalRevenue: 0, // Placeholder for now
+        completed: 0,
+        pending: 0,
+      },
+      totalAdmins,
+      timestamp: new Date(),
+    };
   }
 }

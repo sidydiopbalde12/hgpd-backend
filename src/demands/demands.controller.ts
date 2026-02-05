@@ -54,10 +54,7 @@ export class DemandsController {
   }
 
   @Patch(':id')
-  update(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateDemandDto,
-  ) {
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateDemandDto) {
     return this.demandsService.update(id, dto);
   }
 

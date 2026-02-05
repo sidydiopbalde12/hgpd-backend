@@ -1,5 +1,5 @@
-import { 
-  DemandStatus, 
+import {
+  DemandStatus,
   DemandStatusLabels,
   TerminalDemandStatuses,
   ActiveDemandStatuses,
@@ -49,59 +49,57 @@ export function canTransitionDemandStatus(
       DemandStatus.REFUSED_BY_PROVIDER,
       DemandStatus.CANCELLED_BY_CLIENT,
     ],
-    
+
     // En cours d'étude → peut envoyer proposition, refuser, ou être annulée
     [DemandStatus.UNDER_STUDY]: [
       DemandStatus.PROPOSAL_SENT,
       DemandStatus.REFUSED_BY_PROVIDER,
       DemandStatus.CANCELLED_BY_CLIENT,
     ],
-    
+
     // Proposition envoyée → client peut accepter, refuser, ou annuler
     [DemandStatus.PROPOSAL_SENT]: [
       DemandStatus.ACCEPTED_BY_CLIENT,
       DemandStatus.REFUSED_BY_CLIENT,
       DemandStatus.CANCELLED_BY_CLIENT,
     ],
-    
+
     // Refusée par prestataire → TERMINAL (pas de transition)
     [DemandStatus.REFUSED_BY_PROVIDER]: [],
-    
+
     // Acceptée par client → peut être confirmée ou annulée
     [DemandStatus.ACCEPTED_BY_CLIENT]: [
       DemandStatus.MISSION_CONFIRMED,
       DemandStatus.CANCELLED_BY_CLIENT,
       DemandStatus.CANCELLED_BY_PROVIDER,
     ],
-    
+
     // Refusée par client → TERMINAL (pas de transition)
     [DemandStatus.REFUSED_BY_CLIENT]: [],
-    
+
     // Mission confirmée → passe en préparation ou peut être annulée
     [DemandStatus.MISSION_CONFIRMED]: [
       DemandStatus.IN_PREPARATION,
       DemandStatus.CANCELLED_BY_CLIENT,
       DemandStatus.CANCELLED_BY_PROVIDER,
     ],
-    
+
     // En préparation → événement réalisé ou annulation
     [DemandStatus.IN_PREPARATION]: [
       DemandStatus.EVENT_COMPLETED,
       DemandStatus.CANCELLED_BY_CLIENT,
       DemandStatus.CANCELLED_BY_PROVIDER,
     ],
-    
+
     // Événement réalisé → terminée (avec ou sans avis)
-    [DemandStatus.EVENT_COMPLETED]: [
-      DemandStatus.COMPLETED,
-    ],
-    
+    [DemandStatus.EVENT_COMPLETED]: [DemandStatus.COMPLETED],
+
     // Terminée → TERMINAL (pas de transition)
     [DemandStatus.COMPLETED]: [],
-    
+
     // Annulée par client → TERMINAL (pas de transition)
     [DemandStatus.CANCELLED_BY_CLIENT]: [],
-    
+
     // Annulée par prestataire → TERMINAL (pas de transition)
     [DemandStatus.CANCELLED_BY_PROVIDER]: [],
   };
@@ -147,9 +145,7 @@ export function getAvailableTransitions(status: DemandStatus): DemandStatus[] {
       DemandStatus.CANCELLED_BY_CLIENT,
       DemandStatus.CANCELLED_BY_PROVIDER,
     ],
-    [DemandStatus.EVENT_COMPLETED]: [
-      DemandStatus.COMPLETED,
-    ],
+    [DemandStatus.EVENT_COMPLETED]: [DemandStatus.COMPLETED],
     [DemandStatus.COMPLETED]: [],
     [DemandStatus.CANCELLED_BY_CLIENT]: [],
     [DemandStatus.CANCELLED_BY_PROVIDER]: [],

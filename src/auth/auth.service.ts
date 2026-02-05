@@ -121,7 +121,10 @@ export class AuthService {
     }
 
     // Verifier le mot de passe
-    const isPasswordValid = await bcrypt.compare(dto.password, provider.password);
+    const isPasswordValid = await bcrypt.compare(
+      dto.password,
+      provider.password,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Identifiants invalides');
     }
@@ -306,7 +309,10 @@ export class AuthService {
 
   // ==================== EMAIL VERIFICATION ====================
 
-  async sendEmailVerification(providerId: string, email: string): Promise<void> {
+  async sendEmailVerification(
+    providerId: string,
+    email: string,
+  ): Promise<void> {
     // Invalider les anciens tokens
     await this.emailVerificationTokenRepository.update(
       { providerId, isUsed: false },
@@ -361,7 +367,9 @@ export class AuthService {
     verificationToken.isUsed = true;
     await this.emailVerificationTokenRepository.save(verificationToken);
 
-    this.logger.log(`Email verified for provider: ${verificationToken.providerId}`);
+    this.logger.log(
+      `Email verified for provider: ${verificationToken.providerId}`,
+    );
   }
 
   async resendEmailVerification(email: string): Promise<void> {
@@ -398,7 +406,9 @@ export class AuthService {
 
     // Refresh token (longue duree - 30 jours)
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('jwt.refreshSecret') || 'default-refresh-secret',
+      secret:
+        this.configService.get<string>('jwt.refreshSecret') ||
+        'default-refresh-secret',
       expiresIn: 2592000, // 30 jours en secondes
     });
 

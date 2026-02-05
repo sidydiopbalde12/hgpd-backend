@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { LegalDocument, LegalDocumentType } from './entities/legal-document.entity';
+import {
+  LegalDocument,
+  LegalDocumentType,
+} from './entities/legal-document.entity';
 import { LegalAcceptance } from './entities/legal-acceptance.entity';
 import {
   CreateLegalDocumentDto,
@@ -143,7 +146,9 @@ export class LegalService {
     return this.legalDocumentRepository.save(document);
   }
 
-  private async deactivateOtherDocuments(type: LegalDocumentType): Promise<void> {
+  private async deactivateOtherDocuments(
+    type: LegalDocumentType,
+  ): Promise<void> {
     await this.legalDocumentRepository.update(
       { type, isActive: true },
       { isActive: false },
@@ -163,7 +168,7 @@ export class LegalService {
     }
 
     if (!document.isActive) {
-      throw new BadRequestException('Ce document n\'est plus actif');
+      throw new BadRequestException("Ce document n'est plus actif");
     }
 
     // Verifier si le prestataire a deja accepte ce document
@@ -192,7 +197,9 @@ export class LegalService {
     });
   }
 
-  async findAcceptancesByProvider(providerId: string): Promise<LegalAcceptance[]> {
+  async findAcceptancesByProvider(
+    providerId: string,
+  ): Promise<LegalAcceptance[]> {
     return this.legalAcceptanceRepository.find({
       where: { providerId },
       relations: ['legalDocument'],
@@ -242,5 +249,23 @@ export class LegalService {
     });
 
     return { total, document };
+  }
+
+  async findAllAcceptances(
+    skip: number = 0,
+    take: number = 20,
+  ): Promise<{
+    items: LegalAcceptance[];
+    total: number;
+  }> {
+    const [acceptances, total] =
+      await this.legalAcceptanceRepository.findAndCount({
+        relations: ['provider', 'legalDocument'],
+        order: { acceptedAt: 'DESC' },
+        skip,
+        take,
+      });
+
+    return { items: acceptances, total };
   }
 }

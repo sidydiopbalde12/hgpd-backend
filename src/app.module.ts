@@ -2,6 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ThrottlerModule } from '@nestjs/throttler';
+import * as crypto from 'crypto';
+
+// Make crypto globally available
+if (typeof globalThis.crypto === 'undefined') {
+  globalThis.crypto = crypto as any;
+}
 
 // Import des configs
 import databaseConfig from './config/database.config';
@@ -27,6 +33,8 @@ import { SupportModule } from './support/support.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { SponsorshipsModule } from './sponsorships/sponsorships.module';
 import { LegalModule } from './legal/legal.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -34,8 +42,14 @@ import { LegalModule } from './legal/legal.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
-      load: [databaseConfig, jwtConfig, waveConfig, whatsappConfig, emailConfig],
-      validate
+      load: [
+        databaseConfig,
+        jwtConfig,
+        waveConfig,
+        whatsappConfig,
+        emailConfig,
+      ],
+      validate,
     }),
 
     // Base de données - VERSION CORRIGÉE
@@ -74,6 +88,8 @@ import { LegalModule } from './legal/legal.module';
     SubscriptionsModule,
     SponsorshipsModule,
     LegalModule,
+    UploadsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

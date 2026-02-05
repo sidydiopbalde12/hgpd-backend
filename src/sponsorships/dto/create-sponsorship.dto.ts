@@ -1,10 +1,4 @@
-import {
-  IsUUID,
-  IsNumber,
-  IsDateString,
-  IsInt,
-  Min,
-} from 'class-validator';
+import { IsUUID, IsNumber, IsDateString, IsInt, Min } from 'class-validator';
 
 export class CreateSponsorshipDto {
   @IsUUID()

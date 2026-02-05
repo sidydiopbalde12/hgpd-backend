@@ -11,6 +11,8 @@ import { PasswordResetToken } from './entities/password-reset-token.entity';
 import { EmailVerificationToken } from './entities/email-verification-token.entity';
 import { PhoneOtp } from './entities/phone-otp.entity';
 import { Provider } from '../providers/entities/provider.entity';
+import { User } from '../users/entities/users.entities';
+import { Demand } from '../demands/entities/demand.entity';
 
 // Services
 import { AuthService } from './auth.service';
@@ -38,6 +40,8 @@ import { MailModule } from '../mail/mail.module';
       EmailVerificationToken,
       PhoneOtp,
       Provider,
+      User,
+      Demand,
     ]),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({

@@ -16,8 +16,10 @@ export class MailService {
     private readonly mailerService: MailerService,
     private readonly configService: ConfigService,
   ) {
-    this.adminEmail = this.configService.get<string>('email.adminEmail') || 'admin@hgpd.com';
-    this.platformUrl = this.configService.get<string>('email.platformUrl') || 'https://hgpd.com';
+    this.adminEmail =
+      this.configService.get<string>('email.adminEmail') || 'admin@hgpd.com';
+    this.platformUrl =
+      this.configService.get<string>('email.platformUrl') || 'https://hgpd.com';
   }
 
   async sendDemandNotification(
@@ -34,14 +36,15 @@ export class MailService {
     }
 
     // Filtrer les budgets pour ne montrer que ceux correspondant aux catégories du prestataire
-    const providerBudgets = demandBudgets && providerCategoryIds
-      ? demandBudgets
-          .filter((db) => providerCategoryIds.includes(db.categoryId))
-          .map((db) => ({
-            categoryName: db.category?.name || 'Catégorie',
-            amount: this.formatCurrency(Number(db.amount)),
-          }))
-      : [];
+    const providerBudgets =
+      demandBudgets && providerCategoryIds
+        ? demandBudgets
+            .filter((db) => providerCategoryIds.includes(db.categoryId))
+            .map((db) => ({
+              categoryName: db.category?.name || 'Catégorie',
+              amount: this.formatCurrency(Number(db.amount)),
+            }))
+        : [];
 
     try {
       await this.mailerService.sendMail({
@@ -57,10 +60,13 @@ export class MailService {
           approximateGuests: demand.approximateGuests || 'Non spécifié',
           location: demand.location || 'Non spécifié',
           geographicZone: demand.geographicZone || 'Non spécifié',
-          budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non spécifié',
+          budget: demand.budget
+            ? this.formatCurrency(demand.budget)
+            : 'Non spécifié',
           categoryBudgets: providerBudgets,
           hasCategoryBudgets: providerBudgets.length > 0,
-          additionalInfo: demand.additionalInfo || 'Aucune information supplémentaire',
+          additionalInfo:
+            demand.additionalInfo || 'Aucune information supplémentaire',
           platformUrl: this.platformUrl,
           year: new Date().getFullYear(),
         },
@@ -87,8 +93,14 @@ export class MailService {
 
     for (const provider of providers) {
       try {
-        const providerCategoryIds = providerCategoriesMap?.get(provider.id) || [];
-        await this.sendDemandNotification(provider, demand, demandBudgets, providerCategoryIds);
+        const providerCategoryIds =
+          providerCategoriesMap?.get(provider.id) || [];
+        await this.sendDemandNotification(
+          provider,
+          demand,
+          demandBudgets,
+          providerCategoryIds,
+        );
         if (provider.email) {
           results.success.push(provider.email);
         }
@@ -143,19 +155,20 @@ export class MailService {
           approximateGuests: demand.approximateGuests || 'Non spécifié',
           location: demand.location || 'Non spécifié',
           geographicZone: demand.geographicZone || 'Non spécifié',
-          budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non spécifié',
+          budget: demand.budget
+            ? this.formatCurrency(demand.budget)
+            : 'Non spécifié',
           categoryBudgets: categoryBudgetsData,
           hasCategoryBudgets: categoryBudgetsData.length > 0,
-          additionalInfo: demand.additionalInfo || 'Aucune information supplémentaire',
+          additionalInfo:
+            demand.additionalInfo || 'Aucune information supplémentaire',
           // Prestataires
           providers: providersData,
           year: new Date().getFullYear(),
         },
       });
 
-      this.logger.log(
-        `Admin notification sent for demand ${demand.id}`,
-      );
+      this.logger.log(`Admin notification sent for demand ${demand.id}`);
     } catch (error) {
       this.logger.error(
         `Failed to send admin notification for demand ${demand.id}: ${error.message}`,
@@ -199,7 +212,9 @@ export class MailService {
           approximateGuests: demand.approximateGuests || 'Non specifie',
           location: demand.location || 'Non specifie',
           geographicZone: demand.geographicZone || 'Non specifie',
-          budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non specifie',
+          budget: demand.budget
+            ? this.formatCurrency(demand.budget)
+            : 'Non specifie',
           categoryBudgets: categoryBudgetsData,
           hasCategoryBudgets: categoryBudgetsData.length > 0,
           additionalInfo: demand.additionalInfo || '',
@@ -255,7 +270,9 @@ export class MailService {
           approximateGuests: demand.approximateGuests || 'Non specifie',
           location: demand.location || 'Non specifie',
           geographicZone: demand.geographicZone || 'Non specifie',
-          budget: demand.budget ? this.formatCurrency(demand.budget) : 'Non specifie',
+          budget: demand.budget
+            ? this.formatCurrency(demand.budget)
+            : 'Non specifie',
           additionalInfo: demand.additionalInfo || '',
           platformUrl: this.platformUrl,
           year: new Date().getFullYear(),
@@ -275,7 +292,10 @@ export class MailService {
 
   // ==================== AUTH EMAILS ====================
 
-  async sendEmailVerification(provider: Provider, token: string): Promise<void> {
+  async sendEmailVerification(
+    provider: Provider,
+    token: string,
+  ): Promise<void> {
     if (!provider.email) {
       this.logger.warn(
         `Provider ${provider.id} has no email address, skipping verification email`,
@@ -307,7 +327,10 @@ export class MailService {
     }
   }
 
-  async sendPasswordResetEmail(provider: Provider, token: string): Promise<void> {
+  async sendPasswordResetEmail(
+    provider: Provider,
+    token: string,
+  ): Promise<void> {
     if (!provider.email) {
       this.logger.warn(
         `Provider ${provider.id} has no email address, skipping password reset email`,

@@ -10,6 +10,10 @@ import { ProviderCategory } from '../providers/entities/provider-category.entity
 import { Organizer } from '../organizers/entities/organizer.entity';
 import { MailModule } from '../mail/mail.module';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { EventsModule } from '../events/events.module';
+
+import { Admin } from '../auth/entities/admin.entity';
 
 @Module({
   imports: [
@@ -20,12 +24,15 @@ import { WhatsAppModule } from '../whatsapp/whatsapp.module';
       Provider,
       ProviderCategory,
       Organizer,
+      Admin,
     ]),
     MailModule,
     WhatsAppModule,
+    NotificationsModule,
+    EventsModule,
   ],
   providers: [DemandsService],
   controllers: [DemandsController],
   exports: [DemandsService],
 })
-export class DemandsModule {}
+export class DemandsModule { }

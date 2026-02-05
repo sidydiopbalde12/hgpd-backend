@@ -45,10 +45,14 @@ export class ProviderCategory {
   @JoinColumn({ name: 'category_id' })
   category: Category;
 
-  @ManyToOne(() => SubCategory, (subCategory) => subCategory.providerCategories, {
-    onDelete: 'SET NULL',
-    nullable: true,
-  })
+  @ManyToOne(
+    () => SubCategory,
+    (subCategory) => subCategory.providerCategories,
+    {
+      onDelete: 'SET NULL',
+      nullable: true,
+    },
+  )
   @JoinColumn({ name: 'sub_category_id' })
   subCategory: SubCategory;
 }

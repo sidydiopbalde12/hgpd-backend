@@ -71,7 +71,7 @@ export class LegalController {
     // Enrichir avec les informations de la requete
     const enrichedDto: AcceptLegalDocumentDto = {
       ...dto,
-      ipAddress: dto.ipAddress || (req.ip || req.socket.remoteAddress),
+      ipAddress: dto.ipAddress || req.ip || req.socket.remoteAddress,
       userAgent: dto.userAgent || req.headers['user-agent'],
     };
 

@@ -1,4 +1,11 @@
-import { IsString, IsBoolean, IsInt, IsOptional, MaxLength, Min } from 'class-validator';
+import {
+  IsString,
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateProviderPhotoDto {
   @IsString()
@@ -8,6 +15,10 @@ export class CreateProviderPhotoDto {
   @IsOptional()
   @IsBoolean()
   isMain?: boolean;
+
+  @IsOptional()
+  @IsString()
+  photoType?: string;
 
   @IsOptional()
   @IsInt()

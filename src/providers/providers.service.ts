@@ -57,7 +57,7 @@ export class ProvidersService {
     return savedProvider;
   }
 
-   async findAll(options?: {
+  async findAll(options?: {
     department?: string;
     categoryId?: number;
     isActive?: boolean;
@@ -241,9 +241,11 @@ export class ProvidersService {
 
   // Stats
   async getStats(providerId: string): Promise<ProviderStats> {
-    const stats = await this.statsRepository.findOne({ where: { providerId } });
+    let stats = await this.statsRepository.findOne({ where: { providerId } });
+    // If stats don't exist, create them automatically
     if (!stats) {
-      throw new NotFoundException(`Stats not found for provider ${providerId}`);
+      stats = this.statsRepository.create({ providerId });
+      await this.statsRepository.save(stats);
     }
     return stats;
   }

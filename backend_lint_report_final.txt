@@ -1,0 +1,155 @@
+
+> hgpd-backend@0.0.1 lint
+> eslint "{src,apps,libs,test}/**/*.ts" --fix
+
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/admin/admin.controller.ts
+  123:21  error    'reason' is defined but never used                                                 @typescript-eslint/no-unused-vars
+  220:9   warning  Unsafe argument of type `any` assigned to a parameter of type `LegalDocumentType`  @typescript-eslint/no-unsafe-argument
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/app.module.ts
+  9:3  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/auth/admin-auth.controller.ts
+   78:13  error  'password' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  106:13  error  'password' is assigned a value but never used        @typescript-eslint/no-unused-vars
+  147:3   error  Async method 'getProfile' has no 'await' expression  @typescript-eslint/require-await
+  148:5   error  Unsafe return of a value of type `any`               @typescript-eslint/no-unsafe-return
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/auth/auth.controller.ts
+  155:3  error  Async method 'getProfile' has no 'await' expression  @typescript-eslint/require-await
+  156:5  error  Unsafe return of a value of type `any`               @typescript-eslint/no-unsafe-return
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/auth/decorators/current-user.decorator.ts
+   5:11  error  Unsafe assignment of an `any` value            @typescript-eslint/no-unsafe-assignment
+   6:11  error  Unsafe assignment of an `any` value            @typescript-eslint/no-unsafe-assignment
+   6:26  error  Unsafe member access .user on an `any` value   @typescript-eslint/no-unsafe-member-access
+   9:7   error  Unsafe return of a value of type `any`         @typescript-eslint/no-unsafe-return
+   9:21  error  Unsafe member access [data] on an `any` value  @typescript-eslint/no-unsafe-member-access
+  12:5   error  Unsafe return of a value of type `any`         @typescript-eslint/no-unsafe-return
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/auth/guards/provider.guard.ts
+  12:11  error  Unsafe assignment of an `any` value           @typescript-eslint/no-unsafe-assignment
+  18:14  error  Unsafe member access .type on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/auth/guards/roles.guard.ts
+  25:11  error    Unsafe assignment of an `any` value                                        @typescript-eslint/no-unsafe-assignment
+  32:14  error    Unsafe member access .type on an `any` value                               @typescript-eslint/no-unsafe-member-access
+  37:33  warning  Unsafe argument of type `any` assigned to a parameter of type `AdminRole`  @typescript-eslint/no-unsafe-argument
+  37:38  error    Unsafe member access .role on an `any` value                               @typescript-eslint/no-unsafe-member-access
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/auth/strategies/jwt.strategy.ts
+  42:7   error  Unsafe assignment of an `any` value                @typescript-eslint/no-unsafe-assignment
+  42:16  error  Unsafe member access .id on an `any` value         @typescript-eslint/no-unsafe-member-access
+  43:7   error  Unsafe assignment of an `any` value                @typescript-eslint/no-unsafe-assignment
+  43:19  error  Unsafe member access .email on an `any` value      @typescript-eslint/no-unsafe-member-access
+  44:7   error  Unsafe assignment of an `any` value                @typescript-eslint/no-unsafe-assignment
+  44:23  error  Unsafe member access .firstName on an `any` value  @typescript-eslint/no-unsafe-member-access
+  45:7   error  Unsafe assignment of an `any` value                @typescript-eslint/no-unsafe-assignment
+  45:22  error  Unsafe member access .lastName on an `any` value   @typescript-eslint/no-unsafe-member-access
+  47:7   error  Unsafe assignment of an `any` value                @typescript-eslint/no-unsafe-assignment
+  47:18  error  Unsafe member access .role on an `any` value       @typescript-eslint/no-unsafe-member-access
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/categories/categories.service.ts
+  47:15  error    Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  58:35  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  58:41  error    Unsafe member access [0] on an `any` value                              @typescript-eslint/no-unsafe-member-access
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/common/filters/http-exception.filter.ts
+  18:11  error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+  21:38  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  26:7   error  Unsafe assignment of an `any` value              @typescript-eslint/no-unsafe-assignment
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/common/interceptors/transform-response.interceptor.ts
+  36:9  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/database/migrations/1670000000000-AddLegalTermsAndAcceptance.ts
+  6:3  error  'TableIndex' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/database/scripts/cleanup-and-seed-providers.ts
+  399:11  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  402:35  error    Unsafe member access .length on an `any` value                                                                                                                      @typescript-eslint/no-unsafe-member-access
+  405:33  warning  Unsafe argument of type `any` assigned to a parameter of type `Iterable<readonly [unknown, unknown]> | null | undefined`                                            @typescript-eslint/no-unsafe-argument
+  405:33  error    Unsafe call of a(n) `any` typed value                                                                                                                               @typescript-eslint/no-unsafe-call
+  405:44  error    Unsafe member access .map on an `any` value                                                                                                                         @typescript-eslint/no-unsafe-member-access
+  405:55  error    Unsafe return of a value of type `any[]`                                                                                                                            @typescript-eslint/no-unsafe-return
+  405:58  error    Unsafe member access .name on an `any` value                                                                                                                        @typescript-eslint/no-unsafe-member-access
+  405:66  error    Unsafe member access .id on an `any` value                                                                                                                          @typescript-eslint/no-unsafe-member-access
+  477:11  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  480:11  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  483:11  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  487:60  error    Unsafe member access [0] on an `any` value                                                                                                                          @typescript-eslint/no-unsafe-member-access
+  488:59  error    Unsafe member access [0] on an `any` value                                                                                                                          @typescript-eslint/no-unsafe-member-access
+  490:70  error    Unsafe member access [0] on an `any` value                                                                                                                          @typescript-eslint/no-unsafe-member-access
+  504:1   warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/database/scripts/seed-80-providers.ts
+  1075:11  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  1078:11  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  1090:61  error    Unsafe member access [0] on an `any` value                                                                                                                          @typescript-eslint/no-unsafe-member-access
+  1093:33  error    Unsafe member access .name on an `any` value                                                                                                                        @typescript-eslint/no-unsafe-member-access
+  1093:47  error    Unsafe member access .provider_count on an `any` value                                                                                                              @typescript-eslint/no-unsafe-member-access
+  1105:1   warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/database/scripts/seed-categories.ts
+  179:14  error    'e' is defined but never used                                                                                                                                       @typescript-eslint/no-unused-vars
+  189:14  error    'e' is defined but never used                                                                                                                                       @typescript-eslint/no-unused-vars
+  199:14  error    'e' is defined but never used                                                                                                                                       @typescript-eslint/no-unused-vars
+  283:1   warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/database/seeds/seed.ts
+    5:3  error    Unsafe assignment of an `any` value                                                                                                                                 @typescript-eslint/no-unsafe-assignment
+  115:1  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/database/seeds/seeder.service.ts
+   78:15  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  108:65  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  118:62  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/demands/demands.service.ts
+  283:11  error  'demand' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  410:86  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/demands/dto/assign-provider.dto.ts
+  1:10  error  'IsString' is defined but never used  @typescript-eslint/no-unused-vars
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/mail/mail.service.ts
+   80:75  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  174:77  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  231:82  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  287:79  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  324:74  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+  359:76  error  Unsafe member access .message on an `any` value  @typescript-eslint/no-unsafe-member-access
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/main.ts
+  77:1  warning  Promises must be awaited, end with a call to .catch, end with a call to .then with a rejection handler or be explicitly marked as ignored with the `void` operator  @typescript-eslint/no-floating-promises
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/notifications/notifications.controller.ts
+  17:66  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  17:71  error    Unsafe member access .id on an `any` value                              @typescript-eslint/no-unsafe-member-access
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/payments/payments.service.ts
+  115:11  error    Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  122:23  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  122:31  error    Unsafe member access .total on an `any` value                           @typescript-eslint/no-unsafe-member-access
+  139:11  error    Unsafe assignment of an `any` value                                     @typescript-eslint/no-unsafe-assignment
+  146:32  warning  Unsafe argument of type `any` assigned to a parameter of type `string`  @typescript-eslint/no-unsafe-argument
+  146:40  error    Unsafe member access .total on an `any` value                           @typescript-eslint/no-unsafe-member-access
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/uploads/uploads.controller.ts
+  31:12  error  Unsafe member access .fieldname on an `any` value  @typescript-eslint/no-unsafe-member-access
+  32:9   error  Unsafe call of a(n) `any` typed value              @typescript-eslint/no-unsafe-call
+  32:14  error  Unsafe member access .mimetype on an `any` value   @typescript-eslint/no-unsafe-member-access
+  33:7   error  Unsafe call of a(n) `any` typed value              @typescript-eslint/no-unsafe-call
+  35:7   error  Unsafe call of a(n) `any` typed value              @typescript-eslint/no-unsafe-call
+  38:5   error  Unsafe call of a(n) `any` typed value              @typescript-eslint/no-unsafe-call
+
+/home/momo/work/stage-2025/Dev/hgpd-backend/src/whatsapp/whatsapp.service.ts
+  121:13  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+  122:15  error  Unsafe member access .response on an `any` value  @typescript-eslint/no-unsafe-member-access
+  122:46  error  Unsafe member access .response on an `any` value  @typescript-eslint/no-unsafe-member-access
+  122:70  error  Unsafe member access .message on an `any` value   @typescript-eslint/no-unsafe-member-access
+  129:13  error  Unsafe assignment of an `any` value               @typescript-eslint/no-unsafe-assignment
+
+✖ 98 problems (86 errors, 12 warnings)
+

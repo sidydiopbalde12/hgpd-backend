@@ -14,10 +14,10 @@ export class Admin {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'first_name', type: 'varchar', length: 100 })
+  @Column({ name: 'first_name', type: 'varchar', length: 100, nullable: true })
   firstName: string;
 
-  @Column({ name: 'last_name', type: 'varchar', length: 100 })
+  @Column({ name: 'last_name', type: 'varchar', length: 100, nullable: true })
   lastName: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
@@ -36,7 +36,11 @@ export class Admin {
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
 
-  @Column({ name: 'last_login_at', type: 'timestamp with time zone', nullable: true })
+  @Column({
+    name: 'last_login_at',
+    type: 'timestamp with time zone',
+    nullable: true,
+  })
   lastLoginAt: Date;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })

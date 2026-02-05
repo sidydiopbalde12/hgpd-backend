@@ -10,14 +10,12 @@ import { Provider } from '../../providers/entities/provider.entity';
 import { ProviderCategory } from '../../providers/entities/provider-category.entity';
 import { ProviderStats } from '../../providers/entities/provider-stats.entity';
 import { Organizer } from '../../organizers/entities/organizer.entity';
-import { Admin } from '../../auth/entities/admin.entity';
 
 // Data
 import { categoriesData } from './data/categories.data';
 import { usersData } from './data/users.data';
 import { generateProviders } from './data/providers.data';
 import { generateOrganizers } from './data/organizers.data';
-import { generateAdmins } from './data/admins.data';
 
 @Injectable()
 export class SeederService {
@@ -39,15 +37,14 @@ export class SeederService {
     private readonly providerStatsRepository: Repository<ProviderStats>,
     @InjectRepository(Organizer)
     private readonly organizerRepository: Repository<Organizer>,
-    @InjectRepository(Admin)
-    private readonly adminRepository: Repository<Admin>,
   ) {}
 
   async seed(): Promise<void> {
     this.logger.log('Starting database seeding...');
 
     try {
-      await this.seedAdmins();
+      // LegalTerms seeding commented out as entity doesn't exist yet
+      // await this.seedLegalTerms();
       await this.seedUsers();
       await this.seedCategories();
       await this.seedProviders();
@@ -66,16 +63,24 @@ export class SeederService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 
+    let replicationRoleSet = false;
+
     try {
-      // Désactiver les contraintes de clés étrangères temporairement
-      await queryRunner.query('SET session_replication_role = replica;');
+      // Tenter de désactiver les contraintes de clés étrangères temporairement.
+      // Sur les environnements sans droits superuser, cela peut échouer — nous
+      // continuerons dans ce cas en utilisant TRUNCATE ... CASCADE.
+      try {
+        await queryRunner.query('SET session_replication_role = replica;');
+        replicationRoleSet = true;
+      } catch (e) {
+        this.logger.warn(
+          'Could not set session_replication_role to replica — proceeding without disabling foreign key checks: ' +
+            e.message,
+        );
+      }
 
       // Ordre de suppression pour respecter les dépendances
       const tables = [
-        'refresh_tokens',
-        'password_reset_tokens',
-        'email_verification_tokens',
-        'phone_otps',
         'notifications',
         'sponsorships',
         'subscriptions',
@@ -93,7 +98,6 @@ export class SeederService {
         'sub_categories',
         'categories',
         'users',
-        'admins',
       ];
 
       for (const table of tables) {
@@ -105,8 +109,16 @@ export class SeederService {
         }
       }
 
-      // Réactiver les contraintes
-      await queryRunner.query('SET session_replication_role = DEFAULT;');
+      // Réactiver les contraintes uniquement si nous avions réussi à les désactiver
+      if (replicationRoleSet) {
+        try {
+          await queryRunner.query('SET session_replication_role = DEFAULT;');
+        } catch (e) {
+          this.logger.warn(
+            'Could not reset session_replication_role: ' + e.message,
+          );
+        }
+      }
 
       this.logger.log('Database cleared successfully!');
     } finally {
@@ -119,7 +131,9 @@ export class SeederService {
 
     const existingCount = await this.userRepository.count();
     if (existingCount > 0) {
-      this.logger.log(`Users already seeded (${existingCount} found). Skipping...`);
+      this.logger.log(
+        `Users already seeded (${existingCount} found). Skipping...`,
+      );
       return;
     }
 
@@ -136,7 +150,9 @@ export class SeederService {
 
     const existingCount = await this.categoryRepository.count();
     if (existingCount > 0) {
-      this.logger.log(`Categories already seeded (${existingCount} found). Skipping...`);
+      this.logger.log(
+        `Categories already seeded (${existingCount} found). Skipping...`,
+      );
       return;
     }
 
@@ -158,7 +174,9 @@ export class SeederService {
     }
 
     const totalSubCategories = await this.subCategoryRepository.count();
-    this.logger.log(`Seeded ${categoriesData.length} categories and ${totalSubCategories} subcategories`);
+    this.logger.log(
+      `Seeded ${categoriesData.length} categories and ${totalSubCategories} subcategories`,
+    );
   }
 
   private async seedProviders(): Promise<void> {
@@ -166,7 +184,9 @@ export class SeederService {
 
     const existingCount = await this.providerRepository.count();
     if (existingCount > 0) {
-      this.logger.log(`Providers already seeded (${existingCount} found). Skipping...`);
+      this.logger.log(
+        `Providers already seeded (${existingCount} found). Skipping...`,
+      );
       return;
     }
 
@@ -211,7 +231,9 @@ export class SeederService {
       await this.providerStatsRepository.save(stats);
     }
 
-    this.logger.log(`Seeded ${providersData.length} providers with categories and stats`);
+    this.logger.log(
+      `Seeded ${providersData.length} providers with categories and stats`,
+    );
   }
 
   private async seedOrganizers(): Promise<void> {
@@ -219,7 +241,9 @@ export class SeederService {
 
     const existingCount = await this.organizerRepository.count();
     if (existingCount > 0) {
-      this.logger.log(`Organizers already seeded (${existingCount} found). Skipping...`);
+      this.logger.log(
+        `Organizers already seeded (${existingCount} found). Skipping...`,
+      );
       return;
     }
 
@@ -231,24 +255,5 @@ export class SeederService {
     }
 
     this.logger.log(`Seeded ${organizersData.length} organizers`);
-  }
-
-  private async seedAdmins(): Promise<void> {
-    this.logger.log('Seeding admins...');
-
-    const existingCount = await this.adminRepository.count();
-    if (existingCount > 0) {
-      this.logger.log(`Admins already seeded (${existingCount} found). Skipping...`);
-      return;
-    }
-
-    const adminsData = generateAdmins();
-
-    for (const adminData of adminsData) {
-      const admin = this.adminRepository.create(adminData);
-      await this.adminRepository.save(admin);
-    }
-
-    this.logger.log(`Seeded ${adminsData.length} admins`);
   }
 }

@@ -32,6 +32,9 @@ export class DemandProvider {
   @Column({ name: 'provider_id', type: 'uuid' })
   providerId: string;
 
+  @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
+  budget: number;
+
   // Statut spécifique
   @Column({
     type: 'enum',

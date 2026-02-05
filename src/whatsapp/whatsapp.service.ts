@@ -16,6 +16,17 @@ interface WhatsAppMessage {
   text?: { body: string };
 }
 
+interface WhatsAppApiResponse {
+  messages?: { id: string }[];
+  contacts?: { wa_id: string }[];
+  error?: {
+    code: number;
+    message: string;
+    type: string;
+  };
+  [key: string]: any;
+}
+
 @Injectable()
 export class WhatsAppService {
   private readonly logger = new Logger(WhatsAppService.name);
@@ -30,9 +41,12 @@ export class WhatsAppService {
     private readonly httpService: HttpService,
   ) {
     this.apiUrl = this.configService.get<string>('whatsapp.apiUrl') || '';
-    this.phoneNumberId = this.configService.get<string>('whatsapp.phoneNumberId') || '';
-    this.accessToken = this.configService.get<string>('whatsapp.accessToken') || '';
-    this.adminPhone = this.configService.get<string>('WHATSAPP_ADMIN_PHONE') || '';
+    this.phoneNumberId =
+      this.configService.get<string>('whatsapp.phoneNumberId') || '';
+    this.accessToken =
+      this.configService.get<string>('whatsapp.accessToken') || '';
+    this.adminPhone =
+      this.configService.get<string>('WHATSAPP_ADMIN_PHONE') || '';
 
     // WhatsApp est active seulement si les credentials sont configures
     this.isEnabled = !!(this.phoneNumberId && this.accessToken);
@@ -54,64 +68,84 @@ export class WhatsAppService {
     return formatted;
   }
 
-private async sendMessage(message: WhatsAppMessage): Promise<boolean> {
-  if (!this.isEnabled) {
-    this.logger.debug('WhatsApp disabled, skipping message');
-    return false;
-  }
-
-  const url = `${this.apiUrl}/${this.phoneNumberId}/messages`;
-
-  const payload = {
-    messaging_product: 'whatsapp',
-    recipient_type: 'individual',
-    to: message.to,
-    type: message.template ? 'template' : 'text',
-    ...(message.template && { template: message.template }),
-    ...(message.text && { text: message.text }),
-  };
-
-  this.logger.debug(`Sending WhatsApp message to ${message.to}`);
-
-  try {
-    const response = await firstValueFrom(
-      this.httpService.post(url, payload, {
-        headers: {
-          Authorization: `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        timeout: 10000,
-      }),
-    );
-
-    // Logger la reponse complete pour debug
-    this.logger.log(`WhatsApp API response for ${message.to}: ${JSON.stringify(response.data)}`);
-
-    // Verifier si le message a ete accepte
-    if (response.data?.messages?.[0]?.id) {
-      this.logger.log(`WhatsApp message sent to ${message.to} - Message ID: ${response.data.messages[0].id}`);
-      return true;
-    } else {
-      this.logger.warn(`WhatsApp message to ${message.to} - Unexpected response: ${JSON.stringify(response.data)}`);
+  private async sendMessage(message: WhatsAppMessage): Promise<boolean> {
+    if (!this.isEnabled) {
+      this.logger.debug('WhatsApp disabled, skipping message');
       return false;
     }
-  } catch (error) {
-    const errorData = error.response?.data?.error || error.response?.data || error.message;
-    this.logger.error(`Failed to send WhatsApp message to ${message.to}: ${JSON.stringify(errorData)}`);
 
-    // Diagnostic des erreurs courantes
-    if (errorData?.code === 131030) {
-      this.logger.error('ERREUR: Le destinataire doit d\'abord envoyer un message a votre numero WhatsApp Business (fenetre de 24h)');
-    } else if (errorData?.code === 131047) {
-      this.logger.error('ERREUR: Le numero n\'est pas enregistre sur WhatsApp');
-    } else if (errorData?.code === 131026) {
-      this.logger.error('ERREUR: Le message n\'a pas pu etre delivre - verifiez le numero');
+    const url = `${this.apiUrl}/${this.phoneNumberId}/messages`;
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: message.to,
+      type: message.template ? 'template' : 'text',
+      ...(message.template && { template: message.template }),
+      ...(message.text && { text: message.text }),
+    };
+
+    this.logger.debug(`Sending WhatsApp message to ${message.to}`);
+
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(url, payload, {
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          timeout: 10000,
+        }),
+      );
+
+      const data = response.data as WhatsAppApiResponse;
+
+      // Logger la reponse complete pour debug
+      this.logger.log(
+        `WhatsApp API response for ${message.to}: ${JSON.stringify(data)}`,
+      );
+
+      // Verifier si le message a ete accepte
+      if (data?.messages?.[0]?.id) {
+        this.logger.log(
+          `WhatsApp message sent to ${message.to} - Message ID: ${data.messages[0].id}`,
+        );
+        return true;
+      } else {
+        this.logger.warn(
+          `WhatsApp message to ${message.to} - Unexpected response: ${JSON.stringify(data)}`,
+        );
+        return false;
+      }
+    } catch (error: any) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const errorData =
+        error.response?.data?.error || error.response?.data || error.message;
+      this.logger.error(
+        `Failed to send WhatsApp message to ${message.to}: ${JSON.stringify(errorData)}`,
+      );
+
+      // Diagnostic des erreurs courantes
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      const code = errorData?.code;
+
+      if (code === 131030) {
+        this.logger.error(
+          "ERREUR: Le destinataire doit d'abord envoyer un message a votre numero WhatsApp Business (fenetre de 24h)",
+        );
+      } else if (code === 131047) {
+        this.logger.error(
+          "ERREUR: Le numero n'est pas enregistre sur WhatsApp",
+        );
+      } else if (code === 131026) {
+        this.logger.error(
+          "ERREUR: Le message n'a pas pu etre delivre - verifiez le numero",
+        );
+      }
+
+      return false;
     }
-
-    return false;
   }
-}
-
 
   private formatDate(date: Date | string): string {
     const d = new Date(date);
@@ -146,7 +180,9 @@ private async sendMessage(message: WhatsAppMessage): Promise<boolean> {
 
     // Essayer d'abord avec un template (pour messages proactifs)
     // Template "nouvelle_demande" doit etre cree et approuve dans Meta Business
-    const templateName = this.configService.get<string>('WHATSAPP_TEMPLATE_NEW_DEMAND');
+    const templateName = this.configService.get<string>(
+      'WHATSAPP_TEMPLATE_NEW_DEMAND',
+    );
 
     if (templateName) {
       // Les parametres sont passes dans l'ordre des variables du template
@@ -160,7 +196,10 @@ private async sendMessage(message: WhatsAppMessage): Promise<boolean> {
             {
               type: 'body',
               parameters: [
-                { type: 'text', text: `${provider.firstName} ${provider.lastName}` },
+                {
+                  type: 'text',
+                  text: `${provider.firstName} ${provider.lastName}`,
+                },
                 { type: 'text', text: demand.eventNature || 'Non precise' },
                 { type: 'text', text: this.formatDate(demand.eventDate) },
                 { type: 'text', text: demand.location || 'Non precise' },
@@ -203,7 +242,10 @@ _L'equipe HGPD_`;
     const results = { success: [] as string[], failed: [] as string[] };
 
     for (const provider of providers) {
-      const sent = await this.sendDemandNotificationToProvider(provider, demand);
+      const sent = await this.sendDemandNotificationToProvider(
+        provider,
+        demand,
+      );
       if (sent) {
         results.success.push(provider.phone);
       } else if (provider.phone) {
@@ -222,14 +264,18 @@ _L'equipe HGPD_`;
     providers: Provider[],
   ): Promise<boolean> {
     if (!this.adminPhone) {
-      this.logger.warn('Admin phone not configured, skipping admin WhatsApp notification');
+      this.logger.warn(
+        'Admin phone not configured, skipping admin WhatsApp notification',
+      );
       return false;
     }
 
     const phone = this.formatPhoneNumber(this.adminPhone);
 
     // Template pour admin
-    const templateName = this.configService.get<string>('WHATSAPP_TEMPLATE_ADMIN_DEMAND');
+    const templateName = this.configService.get<string>(
+      'WHATSAPP_TEMPLATE_ADMIN_DEMAND',
+    );
 
     if (templateName) {
       // {{nom_organisateur}}, {{type_evenement}}, {{date_evenement}}, {{nombre_prestataires}}
@@ -242,7 +288,10 @@ _L'equipe HGPD_`;
             {
               type: 'body',
               parameters: [
-                { type: 'text', text: `${organizer.firstName} ${organizer.lastName}` },
+                {
+                  type: 'text',
+                  text: `${organizer.firstName} ${organizer.lastName}`,
+                },
                 { type: 'text', text: demand.eventNature || 'Non precise' },
                 { type: 'text', text: this.formatDate(demand.eventDate) },
                 { type: 'text', text: `${providers.length}` },
@@ -254,9 +303,12 @@ _L'equipe HGPD_`;
     }
 
     // Fallback: message texte (si conversation active)
-    const providersList = providers.length > 0
-      ? providers.map(p => `  - ${p.companyName} (${p.firstName} ${p.lastName})`).join('\n')
-      : '  Aucun prestataire assigne';
+    const providersList =
+      providers.length > 0
+        ? providers
+          .map((p) => `  - ${p.companyName} (${p.firstName} ${p.lastName})`)
+          .join('\n')
+        : '  Aucun prestataire assigne';
 
     const messageBody = `[ADMIN] Nouvelle demande recue
 
@@ -316,7 +368,10 @@ _L'equipe HGPD_`;
     });
   }
 
-  async sendPasswordResetNotification(phone: string, token: string): Promise<boolean> {
+  async sendPasswordResetNotification(
+    phone: string,
+    token: string,
+  ): Promise<boolean> {
     const formattedPhone = this.formatPhoneNumber(phone);
 
     const messageBody = `🔐 *Reinitialisation de mot de passe*

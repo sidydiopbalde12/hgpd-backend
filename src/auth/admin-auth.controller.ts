@@ -23,7 +23,12 @@ import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { AdminRole } from '../common/enums';
-import { AdminLoginDto, CreateAdminDto, RefreshTokenDto, AuthResponseDto } from './dto';
+import {
+  AdminLoginDto,
+  CreateAdminDto,
+  RefreshTokenDto,
+  AuthResponseDto,
+} from './dto';
 import { Admin } from './entities/admin.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -78,17 +83,24 @@ export class AdminAuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(AdminRole.SUPER_ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Creer un nouvel administrateur (SUPER_ADMIN uniquement)' })
+  @ApiOperation({
+    summary: 'Creer un nouvel administrateur (SUPER_ADMIN uniquement)',
+  })
   @ApiResponse({
     status: 201,
     description: 'Administrateur cree avec succes',
   })
   @ApiResponse({ status: 401, description: 'Non authentifie' })
-  @ApiResponse({ status: 403, description: 'Acces refuse - SUPER_ADMIN requis' })
+  @ApiResponse({
+    status: 403,
+    description: 'Acces refuse - SUPER_ADMIN requis',
+  })
   @ApiResponse({ status: 409, description: 'Email deja utilise' })
   @HttpCode(HttpStatus.CREATED)
   @ResponseMessage('Administrateur cree avec succes')
-  async createAdmin(@Body() dto: CreateAdminDto): Promise<Omit<Admin, 'password'>> {
+  async createAdmin(
+    @Body() dto: CreateAdminDto,
+  ): Promise<Omit<Admin, 'password'>> {
     const admin = await this.adminService.create(dto);
     // Ne pas retourner le mot de passe
     const { password, ...result } = admin;

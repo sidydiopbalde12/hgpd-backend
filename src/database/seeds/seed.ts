@@ -1,3 +1,10 @@
+import * as crypto from 'crypto';
+
+// Make crypto globally available for TypeORM
+if (typeof globalThis.crypto === 'undefined') {
+  globalThis.crypto = crypto as any;
+}
+
 import { NestFactory } from '@nestjs/core';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -19,6 +26,7 @@ import { ProviderCategory } from '../../providers/entities/provider-category.ent
 import { ProviderStats } from '../../providers/entities/provider-stats.entity';
 import { Organizer } from '../../organizers/entities/organizer.entity';
 import { Demand } from '../../demands/entities/demand.entity';
+import { DemandBudget } from '../../demands/entities/demand-budget.entity';
 import { DemandProvider } from '../../demands/entities/demand-provider.entity';
 import { Review } from '../../reviews/entities/review.entity';
 import { SupportRequest } from '../../support/entities/support-request.entity';
@@ -55,6 +63,7 @@ import { Notification } from '../../notifications/entities/notification.entity';
             ProviderStats,
             Organizer,
             Demand,
+            DemandBudget,
             DemandProvider,
             Review,
             SupportRequest,

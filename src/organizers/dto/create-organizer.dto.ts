@@ -28,7 +28,7 @@ export class CreateOrganizerDto {
   @MaxLength(100)
   department: string;
 
-  @ApiProperty({ example: 'Pattes d\'oie' })
+  @ApiProperty({ example: "Pattes d'oie" })
   @IsString()
   @MaxLength(100)
   commune: string;

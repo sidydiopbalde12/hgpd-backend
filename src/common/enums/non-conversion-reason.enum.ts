@@ -16,6 +16,7 @@ export const NonConversionReasonLabels = {
   [NonConversionReason.LOCATION_OUT_OF_AREA]: 'Localisation hors périmètre',
   [NonConversionReason.UNAVAILABLE_ON_DATE]: 'Indisponibilité à la date',
   [NonConversionReason.CLIENT_NOT_RESPONSIVE]: 'Client non réactif',
-  [NonConversionReason.CLIENT_CHOSE_ANOTHER]: 'Client a choisi un autre prestataire',
+  [NonConversionReason.CLIENT_CHOSE_ANOTHER]:
+    'Client a choisi un autre prestataire',
   [NonConversionReason.OTHER]: 'Autre',
 };

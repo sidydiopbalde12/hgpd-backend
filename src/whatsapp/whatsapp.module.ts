@@ -4,7 +4,7 @@ import { WhatsAppService } from './whatsapp.service';
 import { HttpModule } from '@nestjs/axios';
 
 @Module({
-  imports: [ConfigModule,HttpModule],
+  imports: [ConfigModule, HttpModule],
   providers: [WhatsAppService],
   exports: [WhatsAppService],
 })

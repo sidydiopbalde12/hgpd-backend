@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Demand } from './entities/demand.entity';
@@ -16,6 +21,11 @@ import {
 } from './dto';
 import { MailService } from '../mail/mail.service';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { EventsGateway } from '../events/events.gateway';
+import { NotificationType, NotificationChannel } from '../common/enums';
+
+import { Admin } from '../auth/entities/admin.entity';
 
 const MAX_PROVIDERS_PER_DEMAND = 5;
 
@@ -36,13 +46,18 @@ export class DemandsService {
     private readonly organizerRepository: Repository<Organizer>,
     @InjectRepository(ProviderCategory)
     private readonly providerCategoryRepository: Repository<ProviderCategory>,
+    @InjectRepository(Admin)
+    private readonly adminRepository: Repository<Admin>,
     private readonly mailService: MailService,
     private readonly whatsAppService: WhatsAppService,
-  ) {}
+    private readonly notificationsService: NotificationsService,
+    private readonly eventsGateway: EventsGateway,
+  ) { }
 
   // Demands CRUD
   async create(dto: CreateDemandDto): Promise<Demand> {
-    const { providerIds, categoryBudgets, ...demandData } = dto;
+    this.logger.log(`Creating demand: ${JSON.stringify(dto)}`);
+    const { providerIds, categoryBudgets, providerBudgets, ...demandData } = dto;
 
     // Valider les prestataires si fournis
     if (providerIds && providerIds.length > 0) {
@@ -52,8 +67,13 @@ export class DemandsService {
     const demand = this.demandRepository.create(demandData);
     const savedDemand = await this.demandRepository.save(demand);
 
-    // Sauvegarder les budgets par catégorie
-    await this.saveCategoryBudgets(savedDemand.id, categoryBudgets);
+    try {
+      // Sauvegarder les budgets par catégorie
+      await this.saveCategoryBudgets(savedDemand.id, categoryBudgets);
+    } catch (error) {
+      this.logger.error(`Error saving budgets for demand ${savedDemand.id}: ${error.message}`);
+      throw new BadRequestException(`Erreur lors de la sauvegarde des budgets: ${error.message}`);
+    }
 
     // Récupérer les budgets sauvegardés avec les relations (catégories)
     const savedBudgets = await this.demandBudgetRepository.find({
@@ -62,67 +82,36 @@ export class DemandsService {
     });
 
     // Récupérer l'organisateur pour les notifications
-    const organizer = await this.organizerRepository.findOne({
-      where: { id: savedDemand.organizerId },
-    });
+    const [organizer, providers] = await Promise.all([
+      this.organizerRepository.findOne({ where: { id: savedDemand.organizerId } }),
+      providerIds && providerIds.length > 0
+        ? this.providerRepository.find({ where: { id: In(providerIds) } })
+        : Promise.resolve([]),
+    ]);
 
-    // Envoyer email de confirmation à l'organisateur
-    if (organizer) {
-      await this.mailService.sendDemandConfirmationToOrganizer(organizer, savedDemand, savedBudgets);
+    // Créer les associations DemandProvider de manière SYNCHRONE
+    let savedDemandProviders: DemandProvider[] = [];
+    if (providers.length > 0) {
+      // S'assurer de ne traiter que les prestataires trouvés en base
+      const demandProvidersEntries = providers.map((provider) => {
+        const specificBudget = providerBudgets?.find(pb => pb.providerId === provider.id)?.budget;
+        return this.demandProviderRepository.create({
+          demandId: savedDemand.id,
+          providerId: provider.id,
+          budget: specificBudget,
+        });
+      });
+      savedDemandProviders = await this.demandProviderRepository.save(demandProvidersEntries);
+      this.logger.log(`Assigned ${providers.length} providers to demand ${savedDemand.id} synchronously`);
+    } else if (providerIds && providerIds.length > 0) {
+      this.logger.warn(`No valid providers found in database for IDs: ${providerIds.join(', ')}. Demand will have no provider associations.`);
     }
 
-    if (providerIds && providerIds.length > 0) {
-      await this.assignMultipleProvidersAndNotify(savedDemand, providerIds, organizer, savedBudgets);
-    } else {
-      // Envoyer les notifications admin meme si aucun prestataire n'est assigne
-      if (organizer) {
-        await this.mailService.sendDemandNotificationToAdmin(savedDemand, organizer, [], savedBudgets);
-        await this.whatsAppService.sendDemandNotificationToAdmin(savedDemand, organizer, []);
-      }
-    }
+    // Récupérer les catégories des prestataires pour les notifications
+    const providerCategories = providers.length > 0
+      ? await this.providerCategoryRepository.find({ where: { providerId: In(providers.map(p => p.id)) } })
+      : [];
 
-    return this.findById(savedDemand.id);
-  }
-
-  private async assignMultipleProvidersAndNotify(
-    demand: Demand,
-    providerIds: string[],
-    organizer: Organizer | null,
-    demandBudgets?: DemandBudget[],
-  ): Promise<void> {
-    const providers = await this.providerRepository.find({
-      where: { id: In(providerIds) },
-    });
-
-    if (providers.length === 0) {
-      this.logger.warn(`No valid providers found for IDs: ${providerIds.join(', ')}`);
-      // Envoyer les notifications admin meme sans prestataires
-      if (organizer) {
-        await this.mailService.sendDemandNotificationToAdmin(demand, organizer, [], demandBudgets);
-        await this.whatsAppService.sendDemandNotificationToAdmin(demand, organizer, []);
-      }
-      return;
-    }
-
-    // Create DemandProvider entries for each provider
-    const demandProviders = providers.map((provider) =>
-      this.demandProviderRepository.create({
-        demandId: demand.id,
-        providerId: provider.id,
-      }),
-    );
-    await this.demandProviderRepository.save(demandProviders);
-
-    this.logger.log(
-      `Assigned ${providers.length} providers to demand ${demand.id}`,
-    );
-
-    // Récupérer les catégories de tous les prestataires pour le mail
-    const providerCategories = await this.providerCategoryRepository.find({
-      where: { providerId: In(providerIds) },
-    });
-
-    // Créer une map providerId -> categoryIds[]
     const providerCategoriesMap = new Map<string, number[]>();
     for (const pc of providerCategories) {
       if (!providerCategoriesMap.has(pc.providerId)) {
@@ -131,34 +120,76 @@ export class DemandsService {
       providerCategoriesMap.get(pc.providerId)!.push(pc.categoryId);
     }
 
-    // Send email notifications to all providers
-    const emailResults = await this.mailService.sendDemandNotificationToMultipleProviders(
-      providers,
-      demand,
-      demandBudgets,
-      providerCategoriesMap,
-    );
+    // Notifications en arrière-plan (TRÈS non-bloquant : uniquement les appels réseau externes)
+    const runExternalNotifications = async () => {
+      try {
+        const notificationPromises: Promise<any>[] = [];
 
-    this.logger.log(
-      `Email notifications sent - Success: ${emailResults.success.length}, Failed: ${emailResults.failed.length}`,
-    );
+        // 1. Confirmation Organisateur
+        if (organizer) {
+          notificationPromises.push(
+            this.mailService.sendDemandConfirmationToOrganizer(organizer, savedDemand, savedBudgets)
+              .catch(e => this.logger.error(`Organizer mail failed: ${e.message}`))
+          );
+        }
 
-    // Send WhatsApp notifications to all providers
-    const whatsAppResults = await this.whatsAppService.sendDemandNotificationToMultipleProviders(
-      providers,
-      demand,
-    );
+        // 2. Notifications Prestataires
+        if (providers.length > 0) {
+          // Mails prestataires
+          notificationPromises.push(
+            this.mailService.sendDemandNotificationToMultipleProviders(providers, savedDemand, savedBudgets, providerCategoriesMap)
+              .catch(e => this.logger.error(`Providers mail failed: ${e.message}`))
+          );
+          // WhatsApp prestataires
+          notificationPromises.push(
+            this.whatsAppService.sendDemandNotificationToMultipleProviders(providers, savedDemand)
+              .catch(e => this.logger.error(`Providers WhatsApp failed: ${e.message}`))
+          );
+        }
 
-    this.logger.log(
-      `WhatsApp notifications sent - Success: ${whatsAppResults.success.length}, Failed: ${whatsAppResults.failed.length}`,
-    );
+        // 3. Notifications Admin
+        if (organizer) {
+          notificationPromises.push(
+            this.mailService.sendDemandNotificationToAdmin(savedDemand, organizer, providers, savedBudgets)
+              .catch(e => this.logger.error(`Admin mail failed: ${e.message}`))
+          );
+          notificationPromises.push(
+            this.whatsAppService.sendDemandNotificationToAdmin(savedDemand, organizer, providers)
+              .catch(e => this.logger.error(`Admin WhatsApp failed: ${e.message}`))
+          );
+        }
 
-    // Send admin notifications (email + WhatsApp) with all details
-    if (organizer) {
-      await this.mailService.sendDemandNotificationToAdmin(demand, organizer, providers, demandBudgets);
-      await this.whatsAppService.sendDemandNotificationToAdmin(demand, organizer, providers);
-    }
+        // 4. In-app Notification for Admin & WebSocket Event
+        this.eventsGateway.emitToAdmin('demand_created', { demandId: savedDemand.id, organizer: organizer?.firstName });
+
+        // Notify ALL active admins
+        const activeAdmins = await this.adminRepository.find({ where: { isActive: true } });
+        for (const admin of activeAdmins) {
+          await this.notificationsService.createNotification({
+            recipientId: admin.id,
+            recipientType: 'admin',
+            type: NotificationType.NEW_DEMAND,
+            channel: NotificationChannel.EMAIL, // Placeholder channel
+            content: {
+              demandId: savedDemand.id,
+              message: `Nouvelle demande de ${organizer?.firstName || 'Client'} pour ${savedDemand.eventNature}`,
+            },
+          });
+        }
+
+        // Exécuter toutes les notifications en parallèle en tâche de fond
+        await Promise.all(notificationPromises);
+      } catch (error) {
+        this.logger.error(`Background notification handler failed for demand ${savedDemand.id}: ${error.message}`);
+      }
+    };
+
+    // Lancer sans await
+    void runExternalNotifications();
+
+    return this.findById(savedDemand.id);
   }
+
 
   async findAll(options?: {
     organizerId?: string;
@@ -299,7 +330,13 @@ export class DemandsService {
   async getDemandProviderById(id: string): Promise<DemandProvider> {
     const dp = await this.demandProviderRepository.findOne({
       where: { id },
-      relations: ['demand', 'demand.organizer', 'provider', 'payment', 'review'],
+      relations: [
+        'demand',
+        'demand.organizer',
+        'provider',
+        'payment',
+        'review',
+      ],
     });
     if (!dp) {
       throw new NotFoundException(`DemandProvider with ID ${id} not found`);
@@ -325,10 +362,36 @@ export class DemandsService {
       await this.sendMissionConfirmedNotification(savedDp);
     }
 
+    // Notify Admin of status change
+    if (dto.status && dto.status !== previousStatus) {
+      this.eventsGateway.emitToAdmin('demand_status_changed', {
+        demandProviderId: id,
+        status: dto.status
+      });
+
+      // Notify ALL active admins of status change
+      const activeAdmins = await this.adminRepository.find({ where: { isActive: true } });
+      for (const admin of activeAdmins) {
+        await this.notificationsService.createNotification({
+          recipientId: admin.id,
+          recipientType: 'admin',
+          type: NotificationType.DEMAND_STATUS_CHANGED,
+          channel: NotificationChannel.EMAIL,
+          content: {
+            demandProviderId: id,
+            status: dto.status,
+            message: `La demande ${id} est passée au statut ${dto.status}`,
+          },
+        });
+      }
+    }
+
     return savedDp;
   }
 
-  private async sendMissionConfirmedNotification(dp: DemandProvider): Promise<void> {
+  private async sendMissionConfirmedNotification(
+    dp: DemandProvider,
+  ): Promise<void> {
     try {
       // Charger les relations necessaires si pas deja chargees
       const demandProvider = await this.demandProviderRepository.findOne({
@@ -385,7 +448,9 @@ export class DemandsService {
     providerIds: string[],
     categoryBudgets: { categoryId: number; amount: number }[],
   ): Promise<void> {
-    const budgetCategoryIds = new Set(categoryBudgets.map((cb) => cb.categoryId));
+    const budgetCategoryIds = new Set(
+      categoryBudgets.map((cb) => cb.categoryId),
+    );
 
     // Récupérer les catégories de tous les prestataires
     const providerCategories = await this.providerCategoryRepository.find({
@@ -401,10 +466,18 @@ export class DemandsService {
       categoriesByProvider.get(pc.providerId)!.push(pc.categoryId);
     }
 
-    // Vérifier que chaque prestataire a au moins une catégorie avec un budget
+    // Vérifier que chaque prestataire trouvé en base a au moins une catégorie avec un budget
     for (const providerId of providerIds) {
-      const providerCategoryIds = categoriesByProvider.get(providerId) || [];
-      const hasBudget = providerCategoryIds.some((catId) => budgetCategoryIds.has(catId));
+      // Ignorer si le prestataire n'existe pas en base (pour supporter les données mock/dev)
+      const providerCategoryIds = categoriesByProvider.get(providerId);
+      if (!providerCategoryIds) {
+        this.logger.warn(`Provider ${providerId} not found in database, skipping budget validation.`);
+        continue;
+      }
+
+      const hasBudget = providerCategoryIds.some((catId) =>
+        budgetCategoryIds.has(catId),
+      );
 
       if (!hasBudget) {
         // Récupérer le nom du prestataire pour un message d'erreur plus clair
@@ -417,7 +490,7 @@ export class DemandsService {
 
         throw new BadRequestException(
           `Le prestataire "${providerName}" n'a pas de budget défini pour sa catégorie. ` +
-            `Veuillez ajouter un budget pour au moins une de ses catégories.`,
+          `Veuillez ajouter un budget pour au moins une de ses catégories.`,
         );
       }
     }
@@ -448,7 +521,9 @@ export class DemandsService {
     const budgetCategoryIds = new Set(demandBudgets.map((db) => db.categoryId));
 
     // Vérifier qu'au moins une catégorie du prestataire a un budget
-    const hasBudget = providerCategoryIds.some((catId) => budgetCategoryIds.has(catId));
+    const hasBudget = providerCategoryIds.some((catId) =>
+      budgetCategoryIds.has(catId),
+    );
 
     if (!hasBudget) {
       const provider = await this.providerRepository.findOne({

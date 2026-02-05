@@ -11,12 +11,13 @@ export default registerAs(
     password: process.env.DB_PASSWORD || 'Toubakhayra',
     database: process.env.DB_DATABASE || 'hgpd_dev',
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-    synchronize: process.env.NODE_ENV === 'development',
+    synchronize:
+      process.env.NODE_ENV === 'development' || process.env.DB_SYNC === 'true',
     // logging: process.env.NODE_ENV === 'development',
     migrations: [__dirname + '/../database/migrations/*{.ts,.js}'],
-    migrationsRun: false, 
+    migrationsRun: false,
     autoLoadEntities: true,
-    logging: true, 
+    logging: true,
 
     //   // Charger toutes les entités
     // entities: [__dirname + '/../**/*.entity{.ts,.js}'],

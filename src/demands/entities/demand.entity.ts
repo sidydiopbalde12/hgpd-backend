@@ -44,7 +44,12 @@ export class Demand {
   @Column({ type: 'varchar', length: 200, nullable: true })
   location: string;
 
-  @Column({ name: 'geographic_zone', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'geographic_zone',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   geographicZone: string;
 
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })

@@ -5,7 +5,7 @@ export enum IdentityDocType {
 }
 
 export const IdentityDocTypeLabels = {
-  [IdentityDocType.CNI]: 'Carte Nationale d\'Identité',
+  [IdentityDocType.CNI]: "Carte Nationale d'Identité",
   [IdentityDocType.PASSPORT]: 'Passeport',
   [IdentityDocType.PERMIT]: 'Permis de conduire',
 };

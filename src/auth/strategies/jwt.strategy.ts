@@ -26,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    let user;
+    let user: any;
 
     if (payload.type === UserType.PROVIDER) {
       user = await this.authService.validateProvider(payload.sub);
@@ -44,7 +44,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       firstName: user.firstName,
       lastName: user.lastName,
       type: payload.type,
-      role: 'role' in user ? user.role : undefined,
+      role: user.role,
     };
   }
 }

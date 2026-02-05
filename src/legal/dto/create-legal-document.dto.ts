@@ -1,4 +1,11 @@
-import { IsEnum, IsNotEmpty, IsString, MaxLength, IsOptional, IsBoolean } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
 import { LegalDocumentType } from '../entities/legal-document.entity';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -8,7 +15,7 @@ export class CreateLegalDocumentDto {
   @IsNotEmpty()
   type: LegalDocumentType;
 
-  @ApiProperty({ example: 'Conditions Générales d\'Utilisation' })
+  @ApiProperty({ example: "Conditions Générales d'Utilisation" })
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)

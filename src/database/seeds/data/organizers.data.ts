@@ -1,8 +1,60 @@
 import { locations } from './providers.data';
 
 // Prénoms et noms sénégalais
-const firstNames = ['Moussa', 'Fatou', 'Amadou', 'Aissatou', 'Ibrahima', 'Mariama', 'Ousmane', 'Aminata', 'Cheikh', 'Khady', 'Mamadou', 'Awa', 'Abdoulaye', 'Ndèye', 'Modou', 'Coumba', 'Pape', 'Diary', 'Serigne', 'Adama', 'Babacar', 'Sokhna', 'Alioune', 'Rama', 'Youssou'];
-const lastNames = ['Diop', 'Fall', 'Ndiaye', 'Sow', 'Ba', 'Diallo', 'Sy', 'Gueye', 'Sarr', 'Mbaye', 'Faye', 'Kane', 'Thiam', 'Diouf', 'Seck', 'Niang', 'Cissé', 'Touré', 'Diagne', 'Ndoye', 'Samb', 'Ly', 'Diaw', 'Sène', 'Ngom'];
+const firstNames = [
+  'Moussa',
+  'Fatou',
+  'Amadou',
+  'Aissatou',
+  'Ibrahima',
+  'Mariama',
+  'Ousmane',
+  'Aminata',
+  'Cheikh',
+  'Khady',
+  'Mamadou',
+  'Awa',
+  'Abdoulaye',
+  'Ndèye',
+  'Modou',
+  'Coumba',
+  'Pape',
+  'Diary',
+  'Serigne',
+  'Adama',
+  'Babacar',
+  'Sokhna',
+  'Alioune',
+  'Rama',
+  'Youssou',
+];
+const lastNames = [
+  'Diop',
+  'Fall',
+  'Ndiaye',
+  'Sow',
+  'Ba',
+  'Diallo',
+  'Sy',
+  'Gueye',
+  'Sarr',
+  'Mbaye',
+  'Faye',
+  'Kane',
+  'Thiam',
+  'Diouf',
+  'Seck',
+  'Niang',
+  'Cissé',
+  'Touré',
+  'Diagne',
+  'Ndoye',
+  'Samb',
+  'Ly',
+  'Diaw',
+  'Sène',
+  'Ngom',
+];
 
 function randomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -43,7 +95,9 @@ export function generateOrganizers(count: number = 30): OrganizerSeedData[] {
 
     // 70% ont un email
     const hasEmail = Math.random() > 0.3;
-    const email = hasEmail ? `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@gmail.com` : undefined;
+    const email = hasEmail
+      ? `${firstName.toLowerCase()}.${lastName.toLowerCase()}${i}@gmail.com`
+      : undefined;
 
     organizers.push({
       firstName,

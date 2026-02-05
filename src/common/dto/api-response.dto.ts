@@ -34,7 +34,13 @@ export class PaginatedResponseDto<T> {
   @ApiProperty({ example: 'Liste récupérée avec succès' })
   message: string;
 
-  constructor(items: T[], total: number, page: number, limit: number, message: string) {
+  constructor(
+    items: T[],
+    total: number,
+    page: number,
+    limit: number,
+    message: string,
+  ) {
     this.success = true;
     this.data = {
       items,

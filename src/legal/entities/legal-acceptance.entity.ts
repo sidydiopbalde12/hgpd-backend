@@ -37,7 +37,9 @@ export class LegalAcceptance {
   @JoinColumn({ name: 'provider_id' })
   provider: Provider;
 
-  @ManyToOne(() => LegalDocument, (doc) => doc.acceptances, { onDelete: 'CASCADE' })
+  @ManyToOne(() => LegalDocument, (doc) => doc.acceptances, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'legal_document_id' })
   legalDocument: LegalDocument;
 }
