@@ -88,7 +88,15 @@ export class AuthService {
 
     // Envoyer email de verification si email fourni
     if (savedProvider.email) {
-      await this.sendEmailVerification(savedProvider.id, savedProvider.email);
+      try {
+        await this.sendEmailVerification(savedProvider.id, savedProvider.email);
+      } catch (error) {
+        this.logger.error(
+          `Failed to send email verification to ${savedProvider.email}`,
+          error.message,
+        );
+        // Email sending failures should not block provider registration
+      }
     }
 
     // Generer les tokens
@@ -385,7 +393,15 @@ export class AuthService {
       throw new BadRequestException('Email deja verifie');
     }
 
-    await this.sendEmailVerification(provider.id, email);
+    try {
+      await this.sendEmailVerification(provider.id, email);
+    } catch (error) {
+      this.logger.error(
+        `Failed to resend email verification to ${email}`,
+        error.message,
+      );
+      // Email sending failures should not block the resend operation
+    }
   }
 
   // ==================== HELPERS ====================

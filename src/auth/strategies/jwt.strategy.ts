@@ -38,6 +38,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Utilisateur non trouve ou inactif');
     }
 
+    // For providers, return all relevant fields
+    if (payload.type === UserType.PROVIDER) {
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+        companyName: user.companyName,
+        activity: user.activity,
+        department: user.department,
+        commune: user.commune,
+        identityDocType: user.identityDocType,
+        identityDocNumber: user.identityDocNumber,
+        showPhoneNumber: user.showPhoneNumber,
+        isActive: user.isActive,
+        type: payload.type,
+      };
+    }
+
+    // For admins
     return {
       id: user.id,
       email: user.email,
